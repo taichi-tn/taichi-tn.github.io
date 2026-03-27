@@ -1,0 +1,195 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Audio Player</title>
+    <style>
+        body { font-family: -apple-system, sans-serif; margin: 0; display: flex; flex-direction: column; height: 100vh; background: #f0f0f2; color: #333; }
+        #header { padding: 12px; background: #fff; border-bottom: 1px solid #ccc; }
+        .file-controls { display: flex; gap: 10px; justify-content: center; }
+        .file-label { background: #f2f2f7; padding: 10px 5px; border-radius: 10px; font-size: 13px; border: 1px solid #d1d1d6; flex: 1; text-align: center; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; display: block; }
+        input[type="file"] { display: none; }
+
+        #player-ui { padding: 15px; background: #fff; border-bottom: 1px solid #ddd; text-align: center; position: sticky; top: 0; z-index: 100; }
+        #play-btn { font-size: 45px; background: none; border: none; color: #007aff; cursor: pointer; padding: 5px; }
+        #time-display { font-family: monospace; font-size: 16px; margin-bottom: 5px; font-weight: bold; }
+        #repeat-status { font-size: 12px; color: #ff9500; height: 18px; font-weight: bold; }
+
+        #transcript-list { flex: 1; overflow-y: auto; padding: 10px; -webkit-overflow-scrolling: touch; }
+        .row { display: flex; align-items: flex-start; gap: 10px; padding: 15px; background: #fff; margin-bottom: 8px; border-radius: 12px; transition: 0.2s; border: 1px solid transparent; }
+        
+        /* 現在再生中のハイライト */
+        .row.active { border-color: #007aff; background: #e1f0ff; }
+        
+        /* リピート範囲のハイライト */
+        .row.in-range { background: #fff4e5; }
+        .row.range-edge { border-color: #ff9500; background: #ffe8cc; }
+
+        .time-btn { color: #007aff; font-weight: bold; min-width: 60px; text-align: left; background: none; border: none; font-size: 14px; padding: 0; }
+        .text { flex: 1; font-size: 16px; line-height: 1.5; color: #000; }
+        .repeat-btn { background: none; border: none; font-size: 22px; color: #ccc; cursor: pointer; padding-left: 10px; }
+        .row.range-edge .repeat-btn { color: #ff9500; }
+    </style>
+<script type="text/javascript" nonce="cdde8e4b87c745e0af3e24ac745" src="//local.adguard.org?ts=1774585986310&amp;type=content-script&amp;dmn=web.fc2.com&amp;url=https%3A%2F%2Fweb.fc2.com%2Fcontrolpanel%2Ffilemanager%2Fconnector%2F%3Fcmd%3Dfile%26target%3Df1_cHJpdmF0ZS9zb3VuZHMuaHRtbA%26_t%3D1773963720%26download%3D1%26cpath%3D%2Fcontrolpanel%2Ffilemanager%2F%26reqid%3D19d2da296f975&amp;app=com.apple.Safari&amp;css=3&amp;js=1&amp;rel=1&amp;rji=1&amp;sbe=1&amp;stealth=1&amp;st-push&amp;st-loc&amp;st-java&amp;st-dnt"></script><script type="text/javascript" nonce="cdde8e4b87c745e0af3e24ac745" src="//local.adguard.org?ts=1774585986310&amp;name=AdGuard%20Extra&amp;type=user-script"></script></head>
+<body>
+
+<div id="header">
+    <div class="file-controls">
+        <label class="file-label">音源を選択<input type="file" id="audioFile" accept="audio/*, .m4a, .mp3, .wav"></label>
+        <label class="file-label">CSVを選択<input type="file" id="csvFile" accept=".csv"></label>
+    </div>
+</div>
+
+<div id="player-ui">
+    <div id="time-display">00:00 / 00:00</div>
+    <audio id="audio"></audio>
+    <button id="play-btn">▶</button>
+    <div id="repeat-status"></div>
+</div>
+
+<div id="transcript-list"></div>
+
+<script>
+    const audio = document.getElementById('audio');
+    const playBtn = document.getElementById('play-btn');
+    const transcriptList = document.getElementById('transcript-list');
+    const repeatStatus = document.getElementById('repeat-status');
+    let transcripts = [];
+    
+    // リピート管理変数
+    let startIndex = null;
+    let endIndex = null;
+
+    document.getElementById('audioFile').onchange = (e) => {
+        const file = e.target.files[0];
+        if (file) audio.src = URL.createObjectURL(file);
+    };
+
+    document.getElementById('csvFile').onchange = (e) => {
+        const file = e.target.files[0];
+        const reader = new FileReader();
+        reader.onload = (event) => {
+            const lines = event.target.result.split(/\r?\n/);
+            transcripts = lines.map(line => {
+                const parts = line.split(',');
+                if (parts.length < 2) return null;
+                const ts = parts[0].trim();
+                return { time: parseTimestamp(ts), ts: ts, text: parts.slice(1).join(',') };
+            }).filter(t => t);
+            renderList();
+        };
+        reader.readAsText(file);
+    };
+
+    function parseTimestamp(str) {
+        const p = str.split(':').map(Number);
+        if (p.length === 3) return p[0] * 3600 + p[1] * 60 + p[2];
+        if (p.length === 2) return p[0] * 60 + p[1];
+        return p[0] || 0;
+    }
+
+    function renderList() {
+        transcriptList.innerHTML = '';
+        transcripts.forEach((item, index) => {
+            const div = document.createElement('div');
+            div.className = 'row';
+            div.id = `row-${index}`;
+            div.onclick = (e) => {
+                if(e.target.closest('.repeat-btn')) return;
+                audio.currentTime = item.time;
+                audio.play();
+            };
+            div.innerHTML = `
+                <button class="time-btn">${item.ts}</button>
+                <div class="text">${item.text}</div>
+                <button class="repeat-btn" onclick="toggleRangeRepeat(${index})">🔄</button>
+            `;
+            transcriptList.appendChild(div);
+        });
+    }
+
+    function toggleRangeRepeat(index) {
+        if (startIndex === null) {
+            // 1点目を選択（開始）
+            startIndex = index;
+            endIndex = null;
+        } else if (startIndex === index) {
+            // 同じ場所をタップしたら解除
+            startIndex = null;
+            endIndex = null;
+        } else if (endIndex === null) {
+            // 2点目を選択（終了）
+            if (index < startIndex) {
+                endIndex = startIndex;
+                startIndex = index;
+            } else {
+                endIndex = index;
+            }
+            audio.currentTime = transcripts[startIndex].time;
+            audio.play();
+        } else {
+            // 既に範囲がある状態で別の場所を押したら新規開始
+            startIndex = index;
+            endIndex = null;
+        }
+        updateUI();
+    }
+
+    function updateUI() {
+        document.querySelectorAll('.row').forEach((row, i) => {
+            row.classList.remove('in-range', 'range-edge');
+            if (startIndex !== null && endIndex === null) {
+                if (i === startIndex) row.classList.add('range-edge');
+            } else if (startIndex !== null && endIndex !== null) {
+                if (i >= startIndex && i <= endIndex) row.classList.add('in-range');
+                if (i === startIndex || i === endIndex) row.classList.add('range-edge');
+            }
+        });
+
+        if (startIndex !== null && endIndex !== null) {
+            repeatStatus.innerText = `🔄 区間リピート中 (${transcripts[startIndex].ts} 〜 ${transcripts[endIndex].ts})`;
+        } else if (startIndex !== null) {
+            repeatStatus.innerText = "📍 終了地点を選択してください...";
+        } else {
+            repeatStatus.innerText = "";
+        }
+    }
+
+    playBtn.onclick = () => audio.paused ? audio.play() : audio.pause();
+    audio.onplay = () => playBtn.innerText = '⏸';
+    audio.onpause = () => playBtn.innerText = '▶';
+
+    audio.ontimeupdate = () => {
+        const current = audio.currentTime;
+        document.getElementById('time-display').innerText = `${formatTime(current)} / ${formatTime(audio.duration)}`;
+        
+        // リピートロジック
+        if (startIndex !== null && endIndex !== null) {
+            const endTime = transcripts[endIndex + 1] ? transcripts[endIndex + 1].time : audio.duration;
+            if (current >= endTime || current < transcripts[startIndex].time) {
+                audio.currentTime = transcripts[startIndex].time;
+            }
+        }
+
+        // アクティブ行の表示
+        transcripts.forEach((t, i) => {
+            const nextTime = transcripts[i+1] ? transcripts[i+1].time : Infinity;
+            const row = document.getElementById(`row-${i}`);
+            if (row) {
+                if (current >= t.time && current < nextTime) row.classList.add('active');
+                else row.classList.remove('active');
+            }
+        });
+    };
+
+    function formatTime(s) {
+        if (isNaN(s)) return "00:00";
+        const h = Math.floor(s / 3600);
+        const m = Math.floor((s % 3600) / 60);
+        const sec = Math.floor(s % 60);
+        return h > 0 ? `${h}:${String(m).padStart(2,'0')}:${String(sec).padStart(2,'0')}` : `${String(m).padStart(2,'0')}:${String(sec).padStart(2,'0')}`;
+    }
+</script>
+</body>
+</html>
