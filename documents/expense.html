@@ -1,0 +1,229 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <title>月次差異計算書</title>
+    <style>
+        :root { --primary-bg: #f0f2f5; --border-color: #dcdfe6; --accent-blue: #409EFF; --danger-red: #F56C6C; }
+        body { font-family: "Helvetica Neue", Arial, sans-serif; background-color: var(--primary-bg); margin: 0; padding: 20px; color: #303133; }
+        .header-area { display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; flex-wrap: wrap; gap: 10px; }
+        .controls { display: flex; align-items: center; gap: 15px; }
+        .last-updated { font-size: 0.85rem; color: #909399; }
+        .btn-reset { background-color: #fff; color: var(--danger-red); border: 1px solid var(--danger-red); padding: 5px 12px; border-radius: 4px; cursor: pointer; font-size: 0.8rem; transition: all 0.2s; }
+        .btn-reset:hover { background-color: var(--danger-red); color: #fff; }
+        .bs-container { display: flex; gap: 20px; align-items: flex-start; }
+        .column { flex: 1; display: flex; flex-direction: column; gap: 20px; }
+        .card { background: white; padding: 25px; border-radius: 12px; box-shadow: 0 2px 12px 0 rgba(0,0,0,0.08); border: 1px solid var(--border-color); }
+        h2 { border-left: 5px solid var(--accent-blue); padding-left: 12px; margin: 0 0 20px 0; font-size: 1.3rem; color: #303133; }
+        table { width: 100%; border-collapse: collapse; }
+        td { padding: 10px 5px; border-bottom: 1px solid #ebeef5; }
+        input[type="text"] { width: 100%; font-size: 1.2rem; font-weight: bold; padding: 8px; text-align: right; border: 1px solid #dcdfe6; border-radius: 6px; box-sizing: border-box; background-color: #fff; transition: all 0.2s; }
+        input[type="text"]:focus { outline: none; border-color: var(--accent-blue); background-color: #f5f7fa; }
+        input[readonly] { background-color: #f9f9f9; color: #606266; cursor: not-allowed; }
+        .detail-area { margin-top: 15px; padding: 10px; background: #fcfcfc; border: 1px dashed #dcdfe6; border-radius: 8px; }
+        .detail-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 5px; }
+        .detail-input { font-size: 0.9rem !important; padding: 4px !important; }
+        .detail-title { font-size: 0.8rem; color: #909399; margin-bottom: 5px; font-weight: bold; }
+        .indent-1 { padding-left: 25px; color: #606266; }
+        .total-row { background-color: #fafafa; font-weight: bold; font-size: 1.1rem; }
+        .diff-card { border-left: 5px solid #E6A23C; background: #fffdf5; }
+        .diff-plus { color: #67C23A; font-weight: bold; }
+        .diff-minus { color: #F56C6C; font-weight: bold; }
+        .value-large { font-size: 1.8rem; text-align: right; font-weight: bold; }
+        .liab-summary { margin-top: 20px; padding-top: 15px; border-top: 2px solid #eee; }
+        .sum-row { display: flex; justify-content: space-between; align-items: center; padding: 8px 0; }
+    </style>
+<script type="text/javascript" nonce="cdde8e4b87c745e0af3e24ac745" src="//local.adguard.org?ts=1774585986310&amp;type=content-script&amp;dmn=web.fc2.com&amp;url=https%3A%2F%2Fweb.fc2.com%2Fcontrolpanel%2Ffilemanager%2Fconnector%2F%3Fcmd%3Dfile%26target%3Df1_cHJpdmF0ZS9leHBlbnNlLmh0bWw%26_t%3D1773827220%26download%3D1%26cpath%3D%2Fcontrolpanel%2Ffilemanager%2F%26reqid%3D19d2da2a29f30b&amp;app=com.apple.Safari&amp;css=3&amp;js=1&amp;rel=1&amp;rji=1&amp;sbe=1&amp;stealth=1&amp;st-push&amp;st-loc&amp;st-java&amp;st-dnt"></script><script type="text/javascript" nonce="cdde8e4b87c745e0af3e24ac745" src="//local.adguard.org?ts=1774585986310&amp;name=AdGuard%20Extra&amp;type=user-script"></script></head>
+<body>
+
+<div class="header-area">
+    <h1 style="margin:0; font-size: 1.5rem;">月次差異計算書</h1>
+    <div class="controls">
+        <div class="last-updated">最終保存: <span id="update-time">-</span></div>
+        <button class="btn-reset" onclick="resetAll()">全入力をリセット</button>
+    </div>
+</div>
+
+<div class="bs-container">
+    <div class="column">
+        <div class="card">
+            <h2>資産</h2>
+            <table>
+                <tr><td><b>現金</b></td><td><input type="text" id="asset-genkin" class="asset-group1 val-input"></td></tr>
+                <tr><td colspan="2"><b>預金</b></td></tr>
+                <tr><td class="indent-1">三井住友銀行</td><td><input type="text" id="asset-smbc" class="asset-group1 val-input"></td></tr>
+                <tr><td class="indent-1">JRE BANK</td><td><input type="text" id="asset-jre" class="asset-group1 val-input"></td></tr>
+                <tr><td colspan="2"><b>Suica</b></td></tr>
+                <tr><td class="indent-1">for Apple Watch</td><td><input type="text" id="asset-suica-aw" class="asset-group1 val-input"></td></tr>
+                <tr><td class="indent-1">for iPhone</td><td><input type="text" id="asset-suica-ip" class="asset-group1 val-input"></td></tr>
+                <tr><td class="indent-1">View</td><td><input type="text" id="asset-suica-view" class="asset-group1 val-input"></td></tr>
+                <tr><td><b>PayPay</b></td><td><input type="text" id="asset-paypay" class="asset-group1 val-input"></td></tr>
+                <tr><td><b>JRE POINT</b></td><td><input type="text" id="asset-jrepoint" class="asset-group1 val-input"></td></tr>
+                <tr class="total-row"><td>小計</td><td id="subtotal-asset1" style="text-align:right;">0</td></tr>
+                
+                <tr><td colspan="2" style="padding-top:15px;"><b>前払費用</b></td></tr>
+                <tr><td class="indent-1">共通費</td><td><input type="text" id="pre-common" class="asset-group2 val-input"></td></tr>
+                <tr><td class="indent-1">塾_給料</td><td><input type="text" id="pre-salary" class="asset-group2 val-input"></td></tr>
+                <tr><td class="indent-1">塾_交通費</td><td><input type="text" id="pre-trans" class="asset-group2 val-input"></td></tr>
+                <tr><td class="indent-1">サークル_前期</td><td><input type="text" id="pre-circle1" class="asset-group2 val-input"></td></tr>
+                <tr><td class="indent-1">サークル_後期</td><td><input type="text" id="pre-circle2" class="asset-group2 val-input"></td></tr>
+                <tr><td class="indent-1">ときわ路パス</td><td><input type="text" id="pre-pass" class="asset-group2 val-input"></td></tr>
+                <tr class="total-row"><td>小計</td><td id="subtotal-asset2" style="text-align:right;">0</td></tr>
+                <tr class="total-row"><td>資産総額</td><td id="total-assets" style="text-align:right;">0</td></tr>
+            </table>
+        </div>
+    </div>
+
+    <div class="column">
+        <div class="card">
+            <h2>負債</h2>
+            <table>
+                <tr><td colspan="2"><b>前月確定分</b></td></tr>
+                <tr><td class="indent-1">Olive</td><td><input type="text" id="prev-olive" class="liab-group val-input"></td></tr>
+                <tr><td class="indent-1">View</td><td><input type="text" id="prev-view" class="liab-group val-input"></td></tr>
+                <tr><td colspan="2"><b>今月確定分</b></td></tr>
+                <tr><td class="indent-1">Olive</td><td><input type="text" id="curr-olive" class="liab-group val-input"></td></tr>
+                <tr><td class="indent-1">View</td><td><input type="text" id="curr-view" class="liab-group val-input" readonly></td></tr>
+            </table>
+            <div class="detail-area">
+                <div class="detail-grid" id="view-details-container"></div>
+            </div>
+            <div class="liab-summary">
+                <div class="sum-row">
+                    <span style="font-size:0.9rem; color:#606266;">View利用額</span>
+                    <span id="ref-view-sum" style="font-weight:bold;">0</span>
+                </div>
+                <div class="sum-row total-row" style="padding: 10px; margin-top: 10px; border-radius: 4px;">
+                    <span>負債総計:</span>
+                    <span id="total-liabilities" style="text-align:right;">0</span>
+                </div>
+            </div>
+        </div>
+
+        <div class="card">
+            <h2>純資産</h2>
+            <div style="display:flex; justify-content:space-between; align-items:center;">
+                <span style="font-weight:bold;">実地総額</span>
+                <span id="net-worth" class="value-large" style="color:var(--accent-blue);">0</span>
+            </div>
+        </div>
+
+        <div class="card diff-card">
+            <div style="margin-bottom:10px;">
+                <span style="font-weight:bold;">家計簿総額</span>
+                <input type="text" id="ledger-total" class="val-input" placeholder="数値を入力">
+            </div>
+            <div id="diff-result" class="value-large" style="font-size: 1.5rem; text-align: left; border-top: 1px solid #ffe58f; padding-top: 10px;">差異: 0</div>
+        </div>
+    </div>
+</div>
+
+<script>
+// 1. まず明細入力欄を生成する関数を定義
+function initDetailInputs() {
+    const container = document.getElementById('view-details-container');
+    container.innerHTML = ""; // 初期化
+    for (let i = 0; i < 30; i++) {
+        const input = document.createElement('input');
+        input.type = 'text';
+        input.className = 'detail-input val-input view-detail-item';
+        input.id = 'view-detail-' + i;
+        container.appendChild(input);
+    }
+}
+
+function formatNumber(n) {
+    return n.replace(/[^0-9]/g, "").replace(/\B(?=(\d{3})+(?!\d))/g, ",");
+}
+
+function getNum(val) {
+    return parseFloat(val.replace(/,/g, "")) || 0;
+}
+
+function update() {
+    let viewSum = 0;
+    document.querySelectorAll('.view-detail-item').forEach(el => viewSum += getNum(el.value));
+    document.getElementById('curr-view').value = viewSum > 0 ? viewSum.toLocaleString() : "";
+
+    let sub1 = 0, sub2 = 0;
+    document.querySelectorAll('.asset-group1').forEach(el => sub1 += getNum(el.value));
+    document.getElementById('subtotal-asset1').innerText = sub1.toLocaleString();
+    document.querySelectorAll('.asset-group2').forEach(el => sub2 += getNum(el.value));
+    document.getElementById('subtotal-asset2').innerText = sub2.toLocaleString();
+    
+    const totalAssets = sub1 + sub2;
+    document.getElementById('total-assets').innerText = totalAssets.toLocaleString();
+
+    let liab = 0;
+    document.querySelectorAll('.liab-group').forEach(el => liab += getNum(el.value));
+    document.getElementById('total-liabilities').innerText = liab.toLocaleString();
+
+    const vSum = getNum(document.getElementById('prev-view').value) + getNum(document.getElementById('curr-view').value);
+    document.getElementById('ref-view-sum').innerText = vSum.toLocaleString();
+
+    const netWorth = totalAssets - liab;
+    document.getElementById('net-worth').innerText = netWorth.toLocaleString();
+    const ledger = getNum(document.getElementById('ledger-total').value);
+    const diff = netWorth - ledger;
+    const diffEl = document.getElementById('diff-result');
+    diffEl.innerText = (diff >= 0 ? "有利差異: +" : "不利差異: ") + diff.toLocaleString();
+    diffEl.className = (diff >= 0 ? 'diff-plus' : 'diff-minus') + " value-large";
+
+    autoSave();
+}
+
+function resetAll() {
+    if(confirm("全ての入力を消去しますか？")) {
+        document.querySelectorAll('.val-input').forEach(el => el.value = "");
+        localStorage.removeItem('kakeibo_final_data');
+        update();
+        document.getElementById('update-time').innerText = "リセット済み";
+    }
+}
+
+function autoSave() {
+    const data = {};
+    document.querySelectorAll('.val-input').forEach(el => {
+        if(el.id) data[el.id] = el.value;
+    });
+    const now = new Date();
+    const timeStr = `${now.getFullYear()}/${now.getMonth()+1}/${now.getDate()} ${now.getHours()}:${String(now.getMinutes()).padStart(2, '0')}:${String(now.getSeconds()).padStart(2, '0')}`;
+    localStorage.setItem('kakeibo_final_data', JSON.stringify({ values: data, timestamp: timeStr }));
+    document.getElementById('update-time').innerText = timeStr;
+}
+
+// イベント設定を一括で行う
+function setupEventListeners() {
+    document.addEventListener('input', function(e) {
+        if (e.target.classList.contains('val-input')) {
+            let cursor = e.target.selectionStart;
+            let oldLen = e.target.value.length;
+            e.target.value = formatNumber(e.target.value);
+            let newLen = e.target.value.length;
+            e.target.setSelectionRange(cursor + (newLen - oldLen), cursor + (newLen - oldLen));
+            update();
+        }
+    });
+}
+
+// 2. ページ読み込み時の処理の順番を厳密にする
+window.onload = function() {
+    initDetailInputs(); // 1. 明細欄を作る
+    setupEventListeners(); // 2. イベントを貼る
+
+    const saved = localStorage.getItem('kakeibo_final_data');
+    if (saved) {
+        const obj = JSON.parse(saved);
+        const data = obj.values;
+        for (let id in data) {
+            const el = document.getElementById(id);
+            if (el) el.value = data[id];
+        }
+        document.getElementById('update-time').innerText = obj.timestamp || "-";
+    }
+    update(); // 3. 最後に計算を走らせる
+};
+</script>
+
+</body>
+</html>
