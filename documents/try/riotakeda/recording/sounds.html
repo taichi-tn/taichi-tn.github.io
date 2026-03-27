@@ -51,36 +51,66 @@
 <div id="transcript-list"></div>
 
 <script>
+// --- 既存の変数宣言 ---
     const audio = document.getElementById('audio');
     const playBtn = document.getElementById('play-btn');
     const transcriptList = document.getElementById('transcript-list');
     const repeatStatus = document.getElementById('repeat-status');
     let transcripts = [];
-    
-    // リピート管理変数
     let startIndex = null;
     let endIndex = null;
 
+    // --- 音源選択時の処理（ここを修正） ---
     document.getElementById('audioFile').onchange = (e) => {
         const file = e.target.files[0];
-        if (file) audio.src = URL.createObjectURL(file);
+        if (!file) return;
+
+        // 1. 音源をセット
+        audio.src = URL.createObjectURL(file);
+
+        // 2. ファイル名からCSVパスを作成 (例: 2026.03.27.mp3 -> 2026.03.27.csv)
+        const fileName = file.name;
+        const csvPath = fileName.substring(0, fileName.lastIndexOf('.')) + '.csv';
+
+        // 3. サーバーからCSVを自動取得
+        fetch(csvPath)
+            .then(response => {
+                if (!response.ok) throw new Error('CSVファイルが見つかりません: ' + csvPath);
+                return response.text();
+            })
+            .then(text => {
+                processCSV(text); // 解析処理を共通化
+                console.log('CSVを自動読み込みしました:', csvPath);
+            })
+            .catch(err => {
+                console.error(err);
+                alert('対応するCSVが見つかりませんでした。手動で選択してください。');
+            });
     };
 
+    // --- 手動CSV選択時の処理（そのまま残す） ---
     document.getElementById('csvFile').onchange = (e) => {
         const file = e.target.files[0];
         const reader = new FileReader();
         reader.onload = (event) => {
-            const lines = event.target.result.split(/\r?\n/);
-            transcripts = lines.map(line => {
-                const parts = line.split(',');
-                if (parts.length < 2) return null;
-                const ts = parts[0].trim();
-                return { time: parseTimestamp(ts), ts: ts, text: parts.slice(1).join(',') };
-            }).filter(t => t);
-            renderList();
+            processCSV(event.target.result);
         };
         reader.readAsText(file);
     };
+
+    // --- CSV解析ロジックを関数に分離 ---
+    function processCSV(csvText) {
+        const lines = csvText.split(/\r?\n/);
+        transcripts = lines.map(line => {
+            const parts = line.split(',');
+            if (parts.length < 2) return null;
+            const ts = parts[0].trim();
+            return { time: parseTimestamp(ts), ts: ts, text: parts.slice(1).join(',') };
+        }).filter(t => t);
+        renderList();
+    }
+
+    // --- 以下、既存の関数群 (parseTimestamp, renderList, toggleRangeRepeat, etc.) ---
 
     function parseTimestamp(str) {
         const p = str.split(':').map(Number);
