@@ -38,14 +38,18 @@
             color: #666; 
         }
         #menu-container { flex: 1; overflow-y: auto; }
-        .menu-item { 
-            padding: 10px 20px; 
-            cursor: pointer; 
-            font-size: 0.85rem; 
-            border-bottom: 1px solid #eee;
-            line-height: 1.3;
-            transition: 0.2s;
-        }
+.menu-item { 
+    padding: 10px 20px; 
+    cursor: pointer; 
+    font-size: 0.85rem; 
+    border-bottom: 1px solid #eee;
+    line-height: 1.3;
+    
+    /* --- 1行に収めて ... にする設定 --- */
+    white-space: nowrap;       /* 改行させない */
+    overflow: hidden;          /* はみ出た部分を隠す */
+    text-overflow: ellipsis;   /* はみ出た末尾を ... にする */
+}
         .menu-item:hover { background: #f9f9f9; }
         .menu-item.active { background: #eef2f7; color: #000; font-weight: bold; border-left: 4px solid var(--primary-blue); }
 
@@ -152,13 +156,14 @@
 </div>
 
 <div id="main-content">
-    <div id="header">
-        <h1 id="current-title" style="margin:0; font-size:1.1rem;">条文を選択</h1>
-        <div>
-            <span id="save-status" style="font-size:0.8rem; color:#909399; margin-right:10px;"></span>
-            <button class="btn-primary" onclick="saveCurrentData()">保存</button>
-        </div>
+<div id="header">
+    <h1 id="current-title" style="margin:0; font-size:1.1rem; overflow:hidden; white-space:nowrap; text-overflow:ellipsis; max-width:60%;">条文を選択</h1>
+    <div style="display: flex; align-items: center; gap: 10px;">
+        <span id="update-time" style="font-size:0.75rem; color:#909399; font-family:sans-serif;"></span>
+        <span id="save-status" style="font-size:0.8rem; color:#67C23A; font-weight:bold;"></span>
+        <button class="btn-primary" onclick="saveCurrentData()">保存</button>
     </div>
+</div>
     <div id="display-area" onmouseup="handleSelection()">
         <div style="text-align:center; color:#999; margin-top:50px;">左のリストから条文を選択してください。<br>dataフォルダにtxtファイルが必要です。</div>
     </div>
@@ -412,6 +417,41 @@ function saveCurrentData() {
         
         return `<p>${line}</p>`;
     }).join('');
+}
+    // 保存ボタンを押した時の処理
+function saveCurrentData() {
+    if (!currentFileId) return;
+    
+    const now = new Date();
+    const timeStr = `${now.getMonth()+1}/${now.getDate()} ${now.getHours()}:${String(now.getMinutes()).padStart(2, '0')}`;
+    
+    const html = document.getElementById('display-area').innerHTML;
+    
+    db.ref('anki_sheets/' + currentFileId).set({ 
+        html: html, 
+        timestamp: timeStr  // 時刻も一緒に保存
+    }).then(() => {
+        document.getElementById('update-time').innerText = "最終保存: " + timeStr;
+        const status = document.getElementById('save-status');
+        status.innerText = "✓";
+        setTimeout(() => status.innerText = "", 2000);
+    });
+}
+
+// 条文を読み込む時の処理（一部抜粋）
+async function loadJoubun(item) {
+    // ...中略...
+    const snapshot = await db.ref('anki_sheets/' + currentFileId).once('value');
+    const savedData = snapshot.val();
+
+    if (savedData) {
+        renderHTML(savedData.html);
+        // 保存されていた日時を表示
+        document.getElementById('update-time').innerText = savedData.timestamp ? "最終保存: " + savedData.timestamp : "";
+    } else {
+        renderHTML(originalHtmlBackup);
+        document.getElementById('update-time').innerText = "未保存";
+    }
 }
 </script>
 </body>
