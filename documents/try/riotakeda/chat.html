@@ -2,84 +2,79 @@
 <html lang="ja">
 <head>
     <meta charset="UTF-8">
-    <title>Chat Archive</title>
+    <title>Chat Archive - Full Width</title>
     <style>
         body {
             background-color: #f0f2f5;
-            font-family: "Helvetica Neue", Arial, "Hiragino Kaku Gothic ProN", "Hiragino Sans", Meiryo, sans-serif;
-            display: flex;
-            justify-content: center;
-            padding: 20px;
+            font-family: sans-serif;
             margin: 0;
+            padding: 20px;
         }
 
-        /* 全体のコンテナ：幅を画面の0.6（60%）に設定 */
-        .chat-container {
-            width: 60%;
-            min-width: 400px; /* 狭くなりすぎないよう調整 */
+        /* チャット全体のエリア（横幅いっぱい） */
+        .chat-area {
+            width: 100%;
             display: flex;
             flex-direction: column;
-            gap: 12px;
+            gap: 10px;
         }
 
-        /* 共通のメッセージスタイル */
-        .message {
-            max-width: 70%;
-            padding: 10px 15px;
-            border-radius: 18px;
-            font-size: 14px; /* PCで見やすい標準サイズ */
-            line-height: 1.5;
+        /* 共通の吹き出し設定 */
+        .bubble {
+            /* ここがポイント：画面幅の0.6（60%）を最大値にする */
+            max-width: 60%; 
+            padding: 12px 16px;
+            border-radius: 15px;
+            font-size: 15px;
+            line-height: 1.4;
             word-wrap: break-word;
             position: relative;
         }
 
-        /* 相手のトーク（左側・灰色） */
-        .message.receive {
+        /* 相手：左寄せ・灰色 */
+        .receive {
             align-self: flex-start;
             background-color: #e4e6eb;
-            color: #050505;
-            border-bottom-left-radius: 4px;
-        }
-
-        /* 自分のトーク（右側・緑色） */
-        .message.send {
-            align-self: flex-end;
-            background-color: #dcf8c6; /* LINE風の薄い緑 */
             color: #000;
-            border-bottom-right-radius: 4px;
         }
 
-        /* 時刻表示（お好みで追加） */
-        .time {
+        /* 自分：右寄せ・緑色 */
+        .send {
+            align-self: flex-end;
+            background-color: #dcf8c6;
+            color: #000;
+        }
+
+        /* 時刻などのメタデータ（必要なければ消してください） */
+        .meta {
             font-size: 11px;
-            color: #65676b;
-            margin-top: 4px;
+            color: #888;
+            margin-top: 5px;
             display: block;
-            text-align: right;
         }
     </style>
 </head>
 <body>
 
-<div class="chat-container">
-    <div class="message receive">
-        お疲れ様です！例の件、どうなりましたか？
-        <span class="time">10:00</span>
+<div class="chat-area">
+    <div class="bubble receive">
+        吹き出しの幅を画面の0.6に設定しました。
+        <span class="meta">12:00</span>
     </div>
 
-    <div class="message send">
-        今HTMLでまとめてるところだよ。画面幅の0.6くらいで表示されるようにしてみた！
-        <span class="time">10:05</span>
+    <div class="bubble send">
+        これなら、PCで開いても一気に横に広がらないから読みやすいね。
+        <span class="meta">12:01</span>
     </div>
 
-    <div class="message send">
-        PCで見ても文字が大きすぎないから、読みやすいと思う。
-        <span class="time">10:06</span>
+    <div class="bubble send">
+        左右に無駄な余白を作らず、メッセージの位置（左か右か）だけで判別できる構成だよ。
+        <span class="meta">12:01</span>
     </div>
-
-    <div class="message receive">
-        いいですね！これならスクロールして過去のログも追いやすそうです。
-        <span class="time">10:10</span>
+    
+    <div class="bubble receive">
+        確かに！長い文章が入っても、ちゃんと6割のところで改行されるから安心です。
+        <span class="meta">12:05</span>
     </div>
 </div>
 
