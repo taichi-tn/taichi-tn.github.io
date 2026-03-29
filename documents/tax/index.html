@@ -233,25 +233,33 @@ async function loadJoubun(item) {
 // 3. テキスト変換
 function parseTextToHTML(text) {
     return text.split('\n').map(line => {
-        // line = line.trim(); // ← これを削除することで文頭のスペースを保持
-        
-        if (!line.trim()) return ""; // 空行は無視
-
+        // 文頭のスペースを保持したいので、判定用の変数だけを trim する
         const trimmed = line.trim();
+        
+        if (!trimmed) return ""; // 空行は飛ばす
 
-        // 1. 大見出し １．
-        if (/^[０-９\d]．/.test(trimmed)) return `<h3>${line}</h3>`;
+        // 1. 大見出し（１．）
+        if (/^[０-９\d]．/.test(trimmed)) {
+            return `<h3>${line}</h3>`;
+        }
         
-        // 2. 中見出し (１)
-        if (/^\([０-９\d]\)/.test(trimmed)) return `<h4>${line}</h4>`;
+        // 2. 中見出し（ (１) ）
+        if (/^\([０-９\d]\)/.test(trimmed)) {
+            return `<h4>${line}</h4>`;
+        }
         
-        // 3. 小見出し ①
-        if (/^[①-⑳]/.test(trimmed)) return `<p class="indent-1">${line}</p>`;
+        // 3. 号（ ① ）
+        if (/^[①-⑳]/.test(trimmed)) {
+            return `<p class="indent-1">${line}</p>`;
+        }
         
-        // 4. 細目 イ
-        if (/^[ア-ンイ]/.test(trimmed)) return `<p class="indent-2">${line}</p>`;
+        // 4. 細目（ イ ）
+        if (/^[ア-ンイ]/.test(trimmed)) {
+            return `<p class="indent-2">${line}</p>`;
+        }
         
-        // 5. それ以外（本文）はインデントを深くする
+        // 5. 【重要】それ以外はすべて「本文」としてクラスを付与
+        // これにより、CSSの #display-area p.body-text が適用されます
         return `<p class="body-text">${line}</p>`;
     }).join('');
 }
