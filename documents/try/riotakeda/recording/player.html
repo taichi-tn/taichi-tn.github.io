@@ -44,7 +44,9 @@
 <div id="player-ui">
     <div id="time-display">00:00 / 00:00</div>
     <audio id="audio"></audio>
-    <button id="play-btn">▶</button>
+<button id="playBtn">
+  <img id="playIcon" src="play.svg" alt="play" width="24">
+</button>
     <div id="repeat-status"></div>
 </div>
 
@@ -56,6 +58,8 @@
     const playBtn = document.getElementById('play-btn');
     const transcriptList = document.getElementById('transcript-list');
     const repeatStatus = document.getElementById('repeat-status');
+    const playIcon = '<svg viewBox="0 0 24 24" width="24" height="24"><path d="M8 5v14l11-7z"/></svg>';
+const pauseIcon = '<svg viewBox="0 0 24 24" width="24" height="24"><path d="M6 19h4V5H6v14zm8-14v14h4V5h-4z"/></svg>';
     let transcripts = [];
     let startIndex = null;
     let endIndex = null;
@@ -187,8 +191,13 @@
     }
 
     playBtn.onclick = () => audio.paused ? audio.play() : audio.pause();
-    audio.onplay = () => playBtn.innerText = '⏸';
-    audio.onpause = () => playBtn.innerText = '▶';
+audio.onplay = () => {
+    document.getElementById('playIcon').src = 'pause.svg';
+};
+
+audio.onpause = () => {
+    document.getElementById('playIcon').src = 'play.svg';
+};
 
     audio.ontimeupdate = () => {
         const current = audio.currentTime;
