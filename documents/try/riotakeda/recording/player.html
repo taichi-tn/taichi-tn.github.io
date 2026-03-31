@@ -151,10 +151,13 @@
                 audio.currentTime = item.time;
                 audio.play();
             };
+            // 🔄 を <img> タグに変更
             div.innerHTML = `
                 <button class="time-btn">${item.ts}</button>
                 <div class="text">${item.text}</div>
-                <button class="repeat-btn" onclick="toggleRangeRepeat(${index})">🔄</button>
+                <button class="repeat-btn" onclick="toggleRangeRepeat(${index})">
+                    <img src="repeat.svg" alt="repeat" width="22" height="22" class="repeat-icon">
+                </button>
             `;
             transcriptList.appendChild(div);
         });
