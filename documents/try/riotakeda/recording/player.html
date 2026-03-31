@@ -6,7 +6,6 @@
     <title>Audio Player</title>
     <style>
         body {
-            /* AppleデバイスではSan Franciscoが優先され、それ以外は標準的なサンセリフ体になります */
             font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif, "Apple Color Emoji", "Segoe UI Emoji";
             margin: 0;
             display: flex;
@@ -14,7 +13,6 @@
             height: 100vh;
             background: #f0f0f2;
             color: #333;
-            /* テキストをより滑らかに表示する設定 */
             -webkit-font-smoothing: antialiased;
             -moz-osx-font-smoothing: grayscale;
         }
@@ -25,7 +23,15 @@
 
         #player-ui { padding: 15px; background: #fff; border-bottom: 1px solid #ddd; text-align: center; position: sticky; top: 0; z-index: 100; }
         #play-btn { font-size: 45px; background: none; border: none; color: #007aff; cursor: pointer; padding: 5px; }
-        #time-display {font-size: 16px; margin-bottom: 5px; font-weight: bold; }
+        #time-display {
+            /* monospace を削除して inherit（継承）にする、または直接指定する */
+            font-family: -apple-system, BlinkMacSystemFont, sans-serif;
+            font-size: 16px;
+            margin-bottom: 5px;
+            font-weight: bold;
+            /* 数字の幅を一定に保ちたい場合は以下を追加すると、San Franciscoのままガタつきを防げます */
+            font-variant-numeric: tabular-nums;
+        }
         #repeat-status { font-size: 12px; color: #ff9500; height: 18px; font-weight: bold; }
 
         #transcript-list { flex: 1; overflow-y: auto; padding: 10px; -webkit-overflow-scrolling: touch; }
@@ -151,7 +157,6 @@
                 audio.currentTime = item.time;
                 audio.play();
             };
-            // 🔄 を <img> タグに変更
             div.innerHTML = `
                 <button class="time-btn">${item.ts}</button>
                 <div class="text">${item.text}</div>
@@ -202,9 +207,9 @@
         });
 
         if (startIndex !== null && endIndex !== null) {
-            repeatStatus.innerText = `🔄 区間リピート中 (${transcripts[startIndex].ts} 〜 ${transcripts[endIndex].ts})`;
+            repeatStatus.innerText = `リピート選択中 (${transcripts[startIndex].ts} 〜 ${transcripts[endIndex].ts})`;
         } else if (startIndex !== null) {
-            repeatStatus.innerText = "📍 終了地点を選択してください...";
+            repeatStatus.innerText = "終了地点を選択してください";
         } else {
             repeatStatus.innerText = "";
         }
