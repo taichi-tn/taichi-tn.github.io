@@ -5,7 +5,19 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <title>Audio Player</title>
     <style>
-        body { font-family: -apple-system, sans-serif; margin: 0; display: flex; flex-direction: column; height: 100vh; background: #f0f0f2; color: #333; }
+        body {
+            /* AppleデバイスではSan Franciscoが優先され、それ以外は標準的なサンセリフ体になります */
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif, "Apple Color Emoji", "Segoe UI Emoji";
+            margin: 0;
+            display: flex;
+            flex-direction: column;
+            height: 100vh;
+            background: #f0f0f2;
+            color: #333;
+            /* テキストをより滑らかに表示する設定 */
+            -webkit-font-smoothing: antialiased;
+            -moz-osx-font-smoothing: grayscale;
+        }
         #header { padding: 12px; background: #fff; border-bottom: 1px solid #ccc; }
         .file-controls { display: flex; gap: 10px; justify-content: center; }
         .file-label { background: #f2f2f7; padding: 10px 5px; border-radius: 10px; font-size: 13px; border: 1px solid #d1d1d6; flex: 1; text-align: center; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; display: block; }
@@ -34,6 +46,9 @@
         .text { flex: 1; font-size: 16px; line-height: 1.5; color: #000; }
         .repeat-btn { background: none; border: none; font-size: 22px; color: #ccc; cursor: pointer; padding-left: 10px; }
         .row.range-edge .repeat-btn { color: #ff9500; }
+        button, input, select, textarea {
+            font-family: inherit;
+        }
     </style>
 <script type="text/javascript" nonce="cdde8e4b87c745e0af3e24ac745" src="//local.adguard.org?ts=1774585986310&amp;type=content-script&amp;dmn=web.fc2.com&amp;url=https%3A%2F%2Fweb.fc2.com%2Fcontrolpanel%2Ffilemanager%2Fconnector%2F%3Fcmd%3Dfile%26target%3Df1_cHJpdmF0ZS9zb3VuZHMuaHRtbA%26_t%3D1773963720%26download%3D1%26cpath%3D%2Fcontrolpanel%2Ffilemanager%2F%26reqid%3D19d2da296f975&amp;app=com.apple.Safari&amp;css=3&amp;js=1&amp;rel=1&amp;rji=1&amp;sbe=1&amp;stealth=1&amp;st-push&amp;st-loc&amp;st-java&amp;st-dnt"></script><script type="text/javascript" nonce="cdde8e4b87c745e0af3e24ac745" src="//local.adguard.org?ts=1774585986310&amp;name=AdGuard%20Extra&amp;type=user-script"></script></head>
 <body>
