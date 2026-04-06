@@ -14,8 +14,17 @@ function scanFiles($directory, $level = 0, &$results = []) {
     global $exclude;
     $files = scandir($directory);
 
-    foreach ($files as $file) {
-        if (in_array($file, $exclude)) continue;
+foreach ($files as $file) {
+    // 1. 特定のファイル名を除外（既存の処理）
+    if (in_array($file, $exclude)) continue;
+
+    $path = $directory . $file;
+
+    // 2. 拡張子が「txt」のファイルを除外（追加）
+    // pathinfoで拡張子を取得し、小文字に変換して比較
+    if (!is_dir($path) && pathinfo($file, PATHINFO_EXTENSION) === 'txt') {
+        continue;
+    }
 
         $path = $directory . $file;
         // 表示用のタイトル（ファイル名から拡張子を除いたものなど）
