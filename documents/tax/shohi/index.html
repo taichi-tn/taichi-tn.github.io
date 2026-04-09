@@ -234,7 +234,7 @@ dataList.forEach(item => {
 });
 
     async function updateSidebarStars() {
-        const snapshot = await db.ref('anki_sheets').once('value');
+        const snapshot = await db.ref('shouhizei/anki_sheets/' + currentFileId).once('value');
         const allData = snapshot.val() || {};
         
         const items = document.querySelectorAll('.menu-item');
@@ -267,7 +267,7 @@ dataList.forEach(item => {
             const text = await response.text();
             originalHtmlBackup = parseTextToHTML(text);
 
-            const snapshot = await db.ref('anki_sheets/' + currentFileId).once('value');
+            const snapshot = await db.ref('shouhizei/anki_sheets/' + currentFileId).once('value');
             const savedData = snapshot.val();
 
             if (savedData) {
@@ -369,7 +369,7 @@ function removeSingleMask(maskEl) {
         const html = document.getElementById('display-area').innerHTML;
         const needsReview = document.getElementById('review-checkbox').checked;
 
-        db.ref('anki_sheets/' + currentFileId).set({
+        db.ref('shouhizei/anki_sheets/' + currentFileId).set({
             html: html,
             timestamp: timeStr,
             needsReview: needsReview
@@ -382,7 +382,7 @@ function removeSingleMask(maskEl) {
 function resetCurrentSheet() {
     if (!currentFileId || !confirm("リセットしますか？")) return;
     renderHTML(originalHtmlBackup);
-    db.ref('anki_sheets/' + currentFileId).remove();
+    db.ref('shouhizei/anki_sheets/' + currentFileId).remove();
 }
     function setupMaskEvents(el) {
         el.onclick = function(e) {
