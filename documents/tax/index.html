@@ -79,7 +79,21 @@
 
         /* マスク設定 */
         .mask { background: #000; color: #000; cursor: pointer; padding: 0 1px; display: inline; border-bottom: 1px solid #000; position: relative; }
-        .mask.reveal { background: transparent; color: #d44; font-weight: bold; }
+        /* 解除（リピール）した時のスタイル */
+        .mask.reveal {
+            background: transparent;
+            color: #000; /* 正解は黒 */
+            font-weight: bold;
+        }
+
+        /* 自分が間違えた内容（メモ）のスタイル */
+        .wrong-memo {
+            color: #d44; /* 間違いメモは赤 */
+            font-size: 0.9em;
+            margin-left: 4px;
+            text-decoration: line-through;
+            font-weight: normal;
+        }
         .remove-btn { position: absolute; top: -10px; background: #f00; color: #fff; font-size: 9px; padding: 0 3px; border-radius: 3px; display: none; }
         .mask:hover .remove-btn { display: inline-block; }
 
@@ -267,18 +281,32 @@ function setupMaskEvents(el) {
     }
 }
 
-function handleSelection() {
-    const sel = window.getSelection();
-    if (!sel.rangeCount || sel.toString().length === 0) return;
-    const range = sel.getRangeAt(0);
-    const span = document.createElement('span');
-    span.className = 'mask';
-    span.textContent = sel.toString();
-    setupMaskEvents(span);
-    range.deleteContents();
-    range.insertNode(span);
-    sel.removeAllRanges();
-}
+    function handleSelection() {
+        const sel = window.getSelection();
+        if (!sel.rangeCount || sel.toString().length === 0) return;
+        
+        // 1. 間違えた内容を入力してもらう
+        const userAnswer = prompt("【間違いメモ】どう間違えて覚えていましたか？（空欄でもOK）");
+        if (userAnswer === null) return; // キャンセルした場合は何もしない
+
+        const range = sel.getRangeAt(0);
+        const span = document.createElement('span');
+        span.className = 'mask';
+        
+        // 正解のテキストを保持
+        const correctText = sel.toString();
+        span.textContent = correctText;
+        
+        // 2. 間違いメモをデータ属性として埋め込む
+        if (userAnswer.trim() !== "") {
+            span.dataset.memo = userAnswer;
+        }
+
+        setupMaskEvents(span);
+        range.deleteContents();
+        range.insertNode(span);
+        sel.removeAllRanges();
+    }
 
 function removeSingleMask(maskEl) {
     const text = maskEl.firstChild.textContent;
@@ -300,6 +328,37 @@ function resetCurrentSheet() {
     renderHTML(originalHtmlBackup);
     db.ref('anki_sheets/' + currentFileId).remove();
 }
+    function setupMaskEvents(el) {
+        el.onclick = function(e) {
+            if (e.target.classList.contains('remove-btn')) return;
+            
+            // すでに解除されている場合は、再度隠す（メモも消す）
+            if (this.classList.contains('reveal')) {
+                this.classList.remove('reveal');
+                const memoEl = this.querySelector('.wrong-memo');
+                if (memoEl) memoEl.remove();
+            } else {
+                // 解除する場合
+                this.classList.add('reveal');
+                
+                // 3. 保存されていた「間違いメモ」があれば表示する
+                if (this.dataset.memo) {
+                    const memoSpan = document.createElement('span');
+                    memoSpan.className = 'wrong-memo';
+                    memoSpan.textContent = `(誤: ${this.dataset.memo})`;
+                    this.appendChild(memoSpan);
+                }
+            }
+        };
+
+        if (!el.querySelector('.remove-btn')) {
+            const btn = document.createElement('span');
+            btn.className = 'remove-btn';
+            btn.innerText = '×';
+            btn.onclick = (e) => { e.stopPropagation(); removeSingleMask(el); };
+            el.appendChild(btn);
+        }
+    }
 </script>
 </body>
 </html>
