@@ -2,7 +2,7 @@
 <html lang="ja">
 <head>
     <meta charset="UTF-8">
-    <title>条文暗記プラットフォーム</title>
+    <title>条文暗記ツール</title>
     <style>
         :root { 
             --sidebar-width: 250px; 
@@ -124,7 +124,10 @@
 <body>
 
 <div id="sidebar">
-    <h2>条文リスト</h2>
+    <div style="display: flex; align-items: center; justify-content: space-between; background: #eee; padding-right: 10px;">
+        <h2>消費税</h2>
+        <a href="../hojin/index.html" style="font-size: 0.7rem; color: var(--primary-blue); text-decoration: none; border: 1px solid; padding: 2px 5px; border-radius: 3px; background: #fff;">法人税へ</a>
+    </div>
     <div id="menu-container"></div>
     <div style="padding: 10px;">
         <button class="btn-danger" style="width:100%" onclick="resetCurrentSheet()">暗記を全消し</button>
