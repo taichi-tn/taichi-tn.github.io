@@ -50,7 +50,7 @@ $data = scanFiles($dir);
 // CSVファイルとして保存
 $fp = fopen($csvFile, 'w');
 foreach ($data as $line) {
-    fputcsv($fp, $line);
+    fwrite($fp, implode(',', $line) . "\n");
 }
 fclose($fp);
 
