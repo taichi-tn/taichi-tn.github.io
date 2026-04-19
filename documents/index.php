@@ -8,7 +8,7 @@ $csvFile = 'index.csv';
 $dir = './';
 
 // CSVに書き込みたくないファイルやディレクトリ
-$exclude = ['.', '..', '.DS_Store', 'index.php', 'index.csv'];
+$exclude = ['.', '..', '.DS_Store', 'index.php'];
 
 function scanFiles($directory, $level = 0, &$results = []) {
     global $exclude;

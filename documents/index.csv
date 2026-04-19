@@ -3,17 +3,20 @@
 1,2022.04.05.html,hinatazaka46/2022.04.05.html
 1,2024.04.05.html,hinatazaka46/2024.04.05.html
 1,index.html,hinatazaka46/index.html
+0,index.csv,index.csv
 0,index.html,index.html
 0,📁 tax,tax/
 1,📁 data,tax/data/
 1,📁 hojin,tax/hojin/
 2,index.html,tax/hojin/index.html
 2,📁 text,tax/hojin/text/
+3,index.csv,tax/hojin/text/index.csv
 3,index.html,tax/hojin/text/index.html
 1,index.html,tax/index.html
 1,📁 shohi,tax/shohi/
 2,index.html,tax/shohi/index.html
 2,📁 text,tax/shohi/text/
+3,index.csv,tax/shohi/text/index.csv
 3,index.html,tax/shohi/text/index.html
 0,📁 try,try/
 1,📁 kikootsuka,try/kikootsuka/
