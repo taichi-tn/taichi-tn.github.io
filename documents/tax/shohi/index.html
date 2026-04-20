@@ -300,7 +300,13 @@ dataList.forEach(item => {
 });
 
     async function updateSidebarStars() {
-        const snapshot = await db.ref('shohi/anki_sheets/' + currentFileId).once('value');
+        // 修正前：...ref('shohi/anki_sheets/' + currentFileId) ← これだと現在選択中の1件しか見られません
+        // 修正後：
+        const snapshot = await db.ref('shohi/anki_sheets').once('value');
+        const allData = snapshot.val() || {};
+        
+        const items = document.querySelectorAll('.menu-item');
+        // ...以下そのまま
         const allData = snapshot.val() || {};
         
         const items = document.querySelectorAll('.menu-item');
@@ -531,7 +537,7 @@ function resetCurrentSheet() {
     }
     // メモ用の変数
     let memoSaveTimer;
-    const SUBJECT_PREFIX = 'shouhizei'; // 法人税なら 'houjinzei'
+    const SUBJECT_PREFIX = 'shohi'; // 法人税なら 'houjinzei'
 
     // ページ読み込み時にメモをロード
     window.addEventListener('DOMContentLoaded', (event) => {
