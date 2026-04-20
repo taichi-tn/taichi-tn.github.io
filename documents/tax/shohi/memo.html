@@ -1,0 +1,84 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Firebase Simple Memo</title>
+    <style>
+        body { font-family: sans-serif; max-width: 500px; margin: 20px auto; padding: 10px; }
+        textarea { width: 100%; height: 100px; margin-bottom: 10px; }
+        .memo-item { border-bottom: 1px solid #ccc; padding: 10px 0; display: flex; justify-content: space-between; }
+        button { cursor: pointer; }
+    </style>
+</head>
+<body>
+
+    <h2>メモ帳</h2>
+    
+    <textarea id="memoInput" placeholder="メモ..."></textarea>
+    <button onclick="saveMemo()">保存する</button>
+
+    <div id="memoList"></div>
+
+    <script type="module">
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js";
+        import { getFirestore, collection, addDoc, onSnapshot, deleteDoc, doc, query, orderBy }
+               from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
+
+        // Firebaseの設定（自分のプロジェクトの情報に書き換えてください）
+        const firebaseConfig = {
+          apiKey: "AIzaSyBuU0l8CzxvUJshPljuAq5LLI8mCGG0f2g",
+          authDomain: "warehs.firebaseapp.com",
+          databaseURL: "https://warehs-default-rtdb.firebaseio.com",
+          projectId: "warehs",
+          storageBucket: "warehs.firebasestorage.app",
+          messagingSenderId: "351013737525",
+          appId: "1:351013737525:web:af00783211e57ec5b18d7c",
+        };
+
+        // 初期化
+        const app = initializeApp(firebaseConfig);
+        const db = getFirestore(app);
+        const memoCollection = collection(db, "memos");
+
+        // メモの保存関数
+        window.saveMemo = async () => {
+            const text = document.getElementById("memoInput").value;
+            if (!text) return;
+
+            try {
+                await addDoc(memoCollection, {
+                    content: text,
+                    createdAt: new Date()
+                });
+                document.getElementById("memoInput").value = ""; // クリア
+            } catch (e) {
+                console.error("保存エラー: ", e);
+            }
+        };
+
+        // メモの削除関数
+        window.deleteMemo = async (id) => {
+            await deleteDoc(doc(db, "memos", id));
+        };
+
+        // データのリアルタイム監視と表示
+        const q = query(memoCollection, orderBy("createdAt", "desc"));
+        onSnapshot(q, (snapshot) => {
+            const memoList = document.getElementById("memoList");
+            memoList.innerHTML = ""; // 一旦リセット
+            
+            snapshot.forEach((doc) => {
+                const data = doc.data();
+                const div = document.createElement("div");
+                div.className = "memo-item";
+                div.innerHTML = `
+                    <span>${data.content}</span>
+                    <button onclick="deleteMemo('${doc.id}')">削除</button>
+                `;
+                memoList.appendChild(div);
+            });
+        });
+    </script>
+</body>
+</html>
