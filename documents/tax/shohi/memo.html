@@ -5,40 +5,30 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Memo</title>
     <style>
-        body, html {
-            margin: 0; padding: 0; height: 100%; overflow: hidden;
-            background-color: #fcfcfc;
-        }
-        /* 全画面入力エリア */
+        body, html { margin: 0; padding: 0; height: 100%; overflow: hidden; background-color: #f9f9f9; }
         #editor {
-            width: 100vw; height: 100vh;
-            padding: 40px 20px;
-            box-sizing: border-box;
-            border: none; outline: none;
-            font-size: 1.1rem; line-height: 1.6;
-            resize: none; font-family: sans-serif;
+            width: 100vw; height: 100vh; padding: 40px 20px; box-sizing: border-box;
+            border: none; outline: none; font-size: 1.1rem; line-height: 1.6;
+            resize: none; font-family: 'Hiragino Kaku Gothic ProN', sans-serif;
             background: transparent;
         }
-        /* 右上のタイムスタンプ */
         #status {
-            position: fixed; top: 10px; right: 20px;
-            font-size: 0.8rem; color: #aaa;
-            pointer-events: none; /* クリックを邪魔しない */
-            font-family: monospace;
+            position: fixed; top: 10px; right: 20px; font-size: 0.8rem;
+            color: #888; pointer-events: none; font-family: monospace;
         }
     </style>
 </head>
 <body>
 
-    <div id="status">Syncing...</div>
-    <textarea id="editor" placeholder="自由に記述... (自動保存)"></textarea>
+    <div id="status">Connecting...</div>
+    <textarea id="editor" placeholder="..."></textarea>
 
     <script type="module">
         import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js";
-        import { getFirestore, doc, setDoc, onSnapshot, serverTimestamp }
-               from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
+        import { getDatabase, ref, set, onValue, serverTimestamp }
+               from "https://www.gstatic.com/firebasejs/10.8.0/firebase-database.js";
 
-        // --- Firebase設定 ---
+        // --- Firebase設定（ご自身のものに差し替えてください） ---
         const firebaseConfig = {
           apiKey: "AIzaSyBuU0l8CzxvUJshPljuAq5LLI8mCGG0f2g",
           authDomain: "warehs.firebaseapp.com",
@@ -50,49 +40,46 @@
         };
 
         const app = initializeApp(firebaseConfig);
-        const db = getFirestore(app);
-        
-        // メモの保存先（ドキュメントIDを "single-memo" で固定）
-        const memoDoc = doc(db, "memos", "single-memo");
+        const db = getDatabase(app);
+        const memoRef = ref(db, 'single_memo');
+
         const editor = document.getElementById("editor");
         const status = document.getElementById("status");
-
         let timeout = null;
 
-        // 1. データのリアルタイム読み込み
-        onSnapshot(memoDoc, (snapshot) => {
-            if (snapshot.exists() && document.activeElement !== editor) {
-                const data = snapshot.data();
+        // 1. 初回読み込み & データの同期
+        onValue(memoRef, (snapshot) => {
+            const data = snapshot.val();
+            // 入力中でない場合のみ、画面の内容をクラウドに合わせる（カーソル飛び防止）
+            if (data && document.activeElement !== editor) {
                 editor.value = data.content || "";
-                updateTimestamp(data.updatedAt);
+                if (data.updatedAt) updateTimestamp(data.updatedAt);
             }
         });
 
-        // 2. 入力時の自動保存 (デバウンス処理: 入力が止まって500ms後に送信)
+        // 2. 入力時の自動保存 (500msのデバウンス)
         editor.addEventListener("input", () => {
             status.innerText = "Saving...";
             clearTimeout(timeout);
             
-            timeout = setTimeout(async () => {
-                try {
-                    await setDoc(memoDoc, {
-                        content: editor.value,
-                        updatedAt: serverTimestamp()
-                    }, { merge: true });
-                    
-                    const now = new Date();
-                    status.innerText = `Saved: ${now.getHours()}:${String(now.getMinutes()).padStart(2, '0')}`;
-                } catch (e) {
+            timeout = setTimeout(() => {
+                set(memoRef, {
+                    content: editor.value,
+                    updatedAt: serverTimestamp()
+                }).then(() => {
+                    updateTimestamp(Date.now());
+                }).catch((error) => {
                     status.innerText = "Error!";
-                }
+                    console.error(error);
+                });
             }, 500);
         });
 
-        // タイムスタンプ表示用の関数
-        function updateTimestamp(ts) {
-            if (!ts) return;
-            const d = ts.toDate();
-            status.innerText = `Saved: ${d.getHours()}:${String(d.getMinutes()).padStart(2, '0')}`;
+        function updateTimestamp(time) {
+            const d = new Date(time);
+            const hh = d.getHours();
+            const mm = String(d.getMinutes()).padStart(2, '0');
+            status.innerText = `Saved: ${hh}:${mm}`;
         }
     </script>
 </body>
