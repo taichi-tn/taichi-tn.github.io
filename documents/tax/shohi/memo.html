@@ -3,82 +3,96 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Firebase Simple Memo</title>
+    <title>Memo</title>
     <style>
-        body { font-family: sans-serif; max-width: 500px; margin: 20px auto; padding: 10px; }
-        textarea { width: 100%; height: 100px; margin-bottom: 10px; }
-        .memo-item { border-bottom: 1px solid #ccc; padding: 10px 0; display: flex; justify-content: space-between; }
-        button { cursor: pointer; }
+        body, html {
+            margin: 0; padding: 0; height: 100%; overflow: hidden;
+            background-color: #fcfcfc;
+        }
+        /* 全画面入力エリア */
+        #editor {
+            width: 100vw; height: 100vh;
+            padding: 40px 20px;
+            box-sizing: border-box;
+            border: none; outline: none;
+            font-size: 1.1rem; line-height: 1.6;
+            resize: none; font-family: sans-serif;
+            background: transparent;
+        }
+        /* 右上のタイムスタンプ */
+        #status {
+            position: fixed; top: 10px; right: 20px;
+            font-size: 0.8rem; color: #aaa;
+            pointer-events: none; /* クリックを邪魔しない */
+            font-family: monospace;
+        }
     </style>
 </head>
 <body>
 
-    <h2>メモ帳</h2>
-    
-    <textarea id="memoInput" placeholder="メモ..."></textarea>
-    <button onclick="saveMemo()">保存する</button>
-
-    <div id="memoList"></div>
+    <div id="status">Syncing...</div>
+    <textarea id="editor" placeholder="自由に記述... (自動保存)"></textarea>
 
     <script type="module">
         import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js";
-        import { getFirestore, collection, addDoc, onSnapshot, deleteDoc, doc, query, orderBy }
+        import { getFirestore, doc, setDoc, onSnapshot, serverTimestamp }
                from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
 
-        // Firebaseの設定（自分のプロジェクトの情報に書き換えてください）
+        // --- Firebase設定 ---
         const firebaseConfig = {
-          apiKey: "AIzaSyBuU0l8CzxvUJshPljuAq5LLI8mCGG0f2g",
-          authDomain: "warehs.firebaseapp.com",
-          databaseURL: "https://warehs-default-rtdb.firebaseio.com",
-          projectId: "warehs",
-          storageBucket: "warehs.firebasestorage.app",
-          messagingSenderId: "351013737525",
-          appId: "1:351013737525:web:af00783211e57ec5b18d7c",
+            apiKey: "YOUR_API_KEY",
+            authDomain: "YOUR_PROJECT_ID.firebaseapp.com",
+            projectId: "YOUR_PROJECT_ID",
+            storageBucket: "YOUR_PROJECT_ID.appspot.com",
+            messagingSenderId: "YOUR_SENDER_ID",
+            appId: "YOUR_APP_ID"
         };
 
-        // 初期化
         const app = initializeApp(firebaseConfig);
         const db = getFirestore(app);
-        const memoCollection = collection(db, "memos");
+        
+        // メモの保存先（ドキュメントIDを "single-memo" で固定）
+        const memoDoc = doc(db, "memos", "single-memo");
+        const editor = document.getElementById("editor");
+        const status = document.getElementById("status");
 
-        // メモの保存関数
-        window.saveMemo = async () => {
-            const text = document.getElementById("memoInput").value;
-            if (!text) return;
+        let timeout = null;
 
-            try {
-                await addDoc(memoCollection, {
-                    content: text,
-                    createdAt: new Date()
-                });
-                document.getElementById("memoInput").value = ""; // クリア
-            } catch (e) {
-                console.error("保存エラー: ", e);
+        // 1. データのリアルタイム読み込み
+        onSnapshot(memoDoc, (snapshot) => {
+            if (snapshot.exists() && document.activeElement !== editor) {
+                const data = snapshot.data();
+                editor.value = data.content || "";
+                updateTimestamp(data.updatedAt);
             }
-        };
-
-        // メモの削除関数
-        window.deleteMemo = async (id) => {
-            await deleteDoc(doc(db, "memos", id));
-        };
-
-        // データのリアルタイム監視と表示
-        const q = query(memoCollection, orderBy("createdAt", "desc"));
-        onSnapshot(q, (snapshot) => {
-            const memoList = document.getElementById("memoList");
-            memoList.innerHTML = ""; // 一旦リセット
-            
-            snapshot.forEach((doc) => {
-                const data = doc.data();
-                const div = document.createElement("div");
-                div.className = "memo-item";
-                div.innerHTML = `
-                    <span>${data.content}</span>
-                    <button onclick="deleteMemo('${doc.id}')">削除</button>
-                `;
-                memoList.appendChild(div);
-            });
         });
+
+        // 2. 入力時の自動保存 (デバウンス処理: 入力が止まって500ms後に送信)
+        editor.addEventListener("input", () => {
+            status.innerText = "Saving...";
+            clearTimeout(timeout);
+            
+            timeout = setTimeout(async () => {
+                try {
+                    await setDoc(memoDoc, {
+                        content: editor.value,
+                        updatedAt: serverTimestamp()
+                    }, { merge: true });
+                    
+                    const now = new Date();
+                    status.innerText = `Saved: ${now.getHours()}:${String(now.getMinutes()).padStart(2, '0')}`;
+                } catch (e) {
+                    status.innerText = "Error!";
+                }
+            }, 500);
+        });
+
+        // タイムスタンプ表示用の関数
+        function updateTimestamp(ts) {
+            if (!ts) return;
+            const d = ts.toDate();
+            status.innerText = `Saved: ${d.getHours()}:${String(d.getMinutes()).padStart(2, '0')}`;
+        }
     </script>
 </body>
 </html>
