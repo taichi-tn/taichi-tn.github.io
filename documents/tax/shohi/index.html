@@ -119,20 +119,83 @@
         button { font-size: 0.85rem; padding: 5px 15px; cursor: pointer; }
         .btn-primary { background: var(--primary-blue); color: #fff; border: none; border-radius: 5px;}
         .btn-danger { background: #fff; color: #d44; border: 1px solid #d44; border-radius: 5px;}
+        /* サイドバーの構造変更 */
+        #sidebar {
+            width: var(--sidebar-width);
+            background: #fff;
+            border-right: 1px solid #dcdfe6;
+            display: flex;
+            flex-direction: column;
+            height: 100vh;
+        }
+
+        /* 上半分のメニューコンテナ */
+        #menu-container {
+            flex: 1; /* 余ったスペースを分け合う */
+            overflow-y: auto;
+        }
+
+        /* 下半分のメモコンテナ */
+        #memo-container {
+            height: 40%; /* サイドバーの下40%をメモに */
+            border-top: 2px solid #dcdfe6;
+            display: flex;
+            flex-direction: column;
+            background: #fffbe6; /* メモ帳っぽい色 */
+        }
+
+        #memo-container h2 {
+            font-size: 0.8rem;
+            padding: 10px 20px;
+            background: #fdf6ec;
+            color: #e6a23c;
+            margin: 0;
+        }
+
+        #memo-area {
+            flex: 1;
+            width: 100%;
+            border: none;
+            padding: 10px;
+            box-sizing: border-box;
+            background: transparent;
+            font-family: inherit;
+            font-size: 0.9rem;
+            resize: none;
+            outline: none;
+            line-height: 1.5;
+        }
+
+        #memo-timestamp {
+            font-size: 0.7rem;
+            color: #999;
+            padding: 5px 10px;
+            text-align: right;
+            background: #fff;
+            border-top: 1px solid #eee;
+        }
     </style>
 </head>
 <body>
 
-<div id="sidebar">
-    <div style="display: flex; align-items: center; justify-content: space-between; background: #eee; padding-right: 10px;">
-        <h2>消費税</h2>
-        <a href="../hojin/index.html" style="font-size: 0.7rem; color: var(--primary-blue); text-decoration: none; border: 1px solid; padding: 2px 5px; border-radius: 3px; background: #fff;">法人税へ</a>
+    <div id="sidebar">
+        <div style="display: flex; align-items: center; justify-content: space-between; background: #eee; padding-right: 10px;">
+            <h2>消費税法</h2>
+            <a href="../hojin/index.html" style="font-size: 0.7rem; color: var(--primary-blue); text-decoration: none; border: 1px solid; padding: 2px 5px; border-radius: 3px; background: #fff;">法人税へ</a>
+        </div>
+        
+        <div id="menu-container"></div>
+        
+        <div style="padding: 10px;">
+            <button class="btn-danger" style="width:100%" onclick="resetCurrentSheet()">暗記を全消し</button>
+        </div>
+
+        <div id="memo-container">
+            <h2>メモ</h2>
+            <textarea id="memo-area" placeholder="..." oninput="autoSaveMemo()"></textarea>
+            <div id="memo-timestamp">未保存</div>
+        </div>
     </div>
-    <div id="menu-container"></div>
-    <div style="padding: 10px;">
-        <button class="btn-danger" style="width:100%" onclick="resetCurrentSheet()">暗記を全消し</button>
-    </div>
-</div>
 
 <div id="main-content">
     <div id="header">
@@ -426,6 +489,47 @@ function resetCurrentSheet() {
     window.onload = () => {
         updateSidebarStars();
     };
+    // メモ用の変数
+    let memoSaveTimer;
+    const SUBJECT_PREFIX = 'shouhizei'; // 法人税なら 'houjinzei'
+
+    // ページ読み込み時にメモをロード
+    window.addEventListener('DOMContentLoaded', (event) => {
+        loadMemo();
+    });
+
+    // メモをロードする関数
+    async function loadMemo() {
+        const snapshot = await db.ref(`${SUBJECT_PREFIX}/memo`).once('value');
+        const memoData = snapshot.val();
+        if (memoData) {
+            document.getElementById('memo-area').value = memoData.text || "";
+            document.getElementById('memo-timestamp').innerText = memoData.timestamp ? "同期済: " + memoData.timestamp : "未保存";
+        }
+    }
+
+    // 自動保存（入力のたびに呼ばれるが、タイマーで制御）
+    function autoSaveMemo() {
+        document.getElementById('memo-timestamp').innerText = "入力中...";
+        
+        // 前のタイマーをクリア（連打防止）
+        clearTimeout(memoSaveTimer);
+        
+        // 1秒間入力が止まったら保存
+        memoSaveTimer = setTimeout(() => {
+            const text = document.getElementById('memo-area').value;
+            const now = new Date();
+            const timeStr = `${now.getMonth()+1}/${now.getDate()} ${now.getHours()}:${String(now.getMinutes()).padStart(2, '0')}`;
+            
+            db.ref(`${SUBJECT_PREFIX}/memo`).set({
+                text: text,
+                timestamp: timeStr
+            }).then(() => {
+                document.getElementById('memo-timestamp').innerText = "自動保存: " + timeStr;
+            });
+        }, 1000);
+    }
+    }
 </script>
 </body>
 </html>
