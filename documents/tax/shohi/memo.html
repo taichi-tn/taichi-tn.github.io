@@ -41,7 +41,7 @@
 
         const app = initializeApp(firebaseConfig);
         const db = getDatabase(app);
-        const memoRef = ref(db, 'single_memo');
+        const memoRef = ref(db, 'shohi/memo');
 
         const editor = document.getElementById("editor");
         const status = document.getElementById("status");
