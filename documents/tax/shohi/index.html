@@ -529,6 +529,45 @@ function resetCurrentSheet() {
             });
         }, 1000);
     }
+    // メモ用の変数
+    let memoSaveTimer;
+    const SUBJECT_PREFIX = 'shouhizei'; // 法人税なら 'houjinzei'
+
+    // ページ読み込み時にメモをロード
+    window.addEventListener('DOMContentLoaded', (event) => {
+        loadMemo();
+    });
+
+    // メモをロードする関数
+    async function loadMemo() {
+        const snapshot = await db.ref(`${SUBJECT_PREFIX}/memo`).once('value');
+        const memoData = snapshot.val();
+        if (memoData) {
+            document.getElementById('memo-area').value = memoData.text || "";
+            document.getElementById('memo-timestamp').innerText = memoData.timestamp ? "同期済: " + memoData.timestamp : "未保存";
+        }
+    }
+
+    // 自動保存（入力のたびに呼ばれるが、タイマーで制御）
+    function autoSaveMemo() {
+        document.getElementById('memo-timestamp').innerText = "入力中...";
+        
+        // 前のタイマーをクリア（連打防止）
+        clearTimeout(memoSaveTimer);
+        
+        // 1秒間入力が止まったら保存
+        memoSaveTimer = setTimeout(() => {
+            const text = document.getElementById('memo-area').value;
+            const now = new Date();
+            const timeStr = `${now.getMonth()+1}/${now.getDate()} ${now.getHours()}:${String(now.getMinutes()).padStart(2, '0')}`;
+            
+            db.ref(`${SUBJECT_PREFIX}/memo`).set({
+                text: text,
+                timestamp: timeStr
+            }).then(() => {
+                document.getElementById('memo-timestamp').innerText = "自動保存: " + timeStr;
+            });
+        }, 1000);
     }
 </script>
 </body>
