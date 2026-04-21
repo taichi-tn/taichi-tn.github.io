@@ -4,133 +4,90 @@
     <meta charset="UTF-8">
     <title>条文暗記ツール</title>
     <style>
-        :root { 
-            --sidebar-width: 250px; 
-            --primary-blue: #2c3e50; 
+        :root {
+            --sidebar-width: 250px;
+            --primary-blue: #2c3e50;
             --text-color: #1a1a1a;
             --bg-color: #f4f7f6;
         }
         
-        body { 
-            display: flex; margin: 0; 
-            font-family: "ヒラギノ明朝 ProN W3", "Hiragino Mincho ProN", "MS P明朝", "MS Mincho", "serif"; 
+        body {
+            display: flex; margin: 0;
+            font-family: "ヒラギノ明朝 ProN W3", "Hiragino Mincho ProN", "MS P明朝", "MS Mincho", "serif";
             height: 100vh; background: var(--bg-color); color: var(--text-color); overflow: hidden;
         }
         
-        #sidebar { 
-            width: var(--sidebar-width); background: #fff; border-right: 1px solid #dcdfe6; 
-            overflow-y: auto; display: flex; flex-direction: column;
+        #sidebar {
+            width: var(--sidebar-width); background: #fff; border-right: 1px solid #dcdfe6;
+            display: flex; flex-direction: column; height: 100vh;
         }
         #sidebar h2 { font-size: 0.85rem; padding: 15px 20px; margin: 0; background: #eee; color: #666; }
         #menu-container { flex: 1; overflow-y: auto; }
-        .menu-item { 
+        .menu-item {
             padding: 10px 20px; cursor: pointer; font-size: 0.85rem; border-bottom: 1px solid #eee; line-height: 1.3;
             white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
         }
-        /* サイドバーの星マーク */
-        .menu-item .star-mark {
-            color: #f39c12;
-            margin-right: 5px;
-            font-weight: bold;
-        }
-
-        /* ヘッダーのチェックボックスコンテナ */
-        .review-check-container {
-            display: flex;
-            align-items: center;
-            gap: 5px;
-            font-size: 0.9rem;
-            cursor: pointer;
-            background: #fffbe6;
-            padding: 2px 8px;
-            border: 1px solid #ffe58f;
-            border-radius: 4px;
-        }
+        .menu-item .star-mark { color: #f39c12; margin-right: 5px; font-weight: bold; }
         .menu-item:hover { background: #f9f9f9; }
         .menu-item.active { background: #eef2f7; color: #000; font-weight: bold; border-left: 4px solid var(--primary-blue); }
 
         #main-content { flex: 1; display: flex; flex-direction: column; overflow: hidden; background: #fff; }
-        #header { 
-            padding: 10px 30px; border-bottom: 1px solid #eee; display: flex; 
+        #header {
+            padding: 10px 30px; border-bottom: 1px solid #eee; display: flex;
             justify-content: space-between; align-items: center; background: #fafafa;
         }
         
-        /* --- 几帳面インデント設定（CSSセレクタを最強に） --- */
-        #display-area { 
-            flex: 1; overflow-y: auto; padding: 20px 40px; 
+        .review-check-container {
+            display: flex; align-items: center; gap: 5px; font-size: 0.9rem; cursor: pointer;
+            background: #fffbe6; padding: 2px 8px; border: 1px solid #ffe58f; border-radius: 4px;
+        }
+
+        #display-area {
+            flex: 1; overflow-y: auto; padding: 20px 40px;
             line-height: 1.6; font-size: 1.1rem; text-align: justify;
         }
 
-        /* 全ての要素の余白 */
-        #display-area h3, #display-area h4, #display-area p {
-            margin: 6px 0 !important;
-            padding: 0 !important;
-        }
+        #display-area h3, #display-area h4, #display-area p { margin: 6px 0 !important; padding: 0 !important; }
+        #display-area h3 { padding-left: 1.5em !important; text-indent: -1.5em !important; border-bottom: 1px solid #000; margin-top: 20px !important; }
+        #display-area h4 { padding-left: 1.5em !important; text-indent: -1.5em !important; }
+        #display-area .indent-1 { padding-left: 3.5em !important; text-indent: -1.5em !important; display: block; }
+        #display-area .indent-2 { padding-left: 5.0em !important; text-indent: -1.5em !important; display: block; }
+        #display-area .body-text { padding-left: 3.5em !important; text-indent: 0 !important; display: block; }
 
-        /* １．大見出し */
-        #display-area h3 { 
-            padding-left: 1.5em !important; text-indent: -1.5em !important; 
-            border-bottom: 1px solid #000; margin-top: 20px !important;
-        }
-
-        /* （１）中見出し */
-        #display-area h4 { 
-            padding-left: 1.5em !important; text-indent: -1.5em !important;
-        }
-
-        /* ① 号 と 本文 のツラを 3.5em で完全に揃える */
-        #display-area .indent-1,
-        #display-area .body-text { 
-            padding-left: 3.5em !important; 
-            text-indent: 0 !important;
-            display: block;
-        }
-
-        /* ① の記号だけ左へ出す */
-        #display-area .indent-1 { 
-            text-indent: -1.5em !important; 
-        }
-
-        /* イ 細目 */
-        #display-area .indent-2 { 
-            padding-left: 5.0em !important; text-indent: -1.5em !important; 
-        }
-
-        /* マスク設定 */
         .mask { background: #000; color: #000; cursor: pointer; padding: 0 1px; display: inline; border-bottom: 1px solid #000; position: relative; }
-        /* 解除（リピール）した時のスタイル */
-        .mask.reveal {
-            background: transparent;
-            color: #000; /* 正解は黒 */
-            font-weight: bold;
-        }
-
-        /* 自分が間違えた内容（メモ）のスタイル */
-        .wrong-memo {
-            color: #d44; /* 間違いメモは赤 */
-            font-size: 0.9em;
-            margin-left: 4px;
-            text-decoration: line-through;
-            font-weight: normal;
-        }
+        .mask.reveal { background: transparent; color: #000; font-weight: bold; }
+        .wrong-memo { color: #d44; font-size: 0.9em; margin-left: 4px; text-decoration: line-through; font-weight: normal; }
         .remove-btn { position: absolute; top: -10px; background: #f00; color: #fff; font-size: 9px; padding: 0 3px; border-radius: 3px; display: none; }
         .mask:hover .remove-btn { display: inline-block; }
 
         button { font-size: 0.85rem; padding: 5px 15px; cursor: pointer; }
         .btn-primary { background: var(--primary-blue); color: #fff; border: none; border-radius: 5px;}
         .btn-danger { background: #fff; color: #d44; border: 1px solid #d44; border-radius: 5px;}
+
+        #memo-container { height: 40%; border-top: 2px solid #dcdfe6; display: flex; flex-direction: column; background: #fffbe6; }
+        #memo-container h2 { font-size: 0.8rem; padding: 10px 20px; background: #fdf6ec; color: #e6a23c; margin: 0; }
+        #memo-area { flex: 1; width: 100%; border: none; padding: 10px; box-sizing: border-box; background: transparent; font-family: inherit; font-size: 0.9rem; resize: none; outline: none; }
+        #memo-timestamp { font-size: 0.7rem; color: #999; padding: 5px 10px; text-align: right; background: #fff; border-top: 1px solid #eee; }
     </style>
 </head>
 <body>
 
 <div id="sidebar">
     <div style="display: flex; align-items: center; justify-content: space-between; background: #eee; padding-right: 10px;">
-        <h2>法人税</h2>
+        <h2>法人税法</h2>
         <a href="../shohi/index.html" style="font-size: 0.7rem; color: var(--primary-blue); text-decoration: none; border: 1px solid; padding: 2px 5px; border-radius: 3px; background: #fff;">消費税へ</a>
     </div>
+    
     <div id="menu-container"></div>
+    
     <div style="padding: 10px;">
         <button class="btn-danger" style="width:100%" onclick="resetCurrentSheet()">暗記を全消し</button>
+    </div>
+
+    <div id="memo-container">
+        <h2>共有メモ</h2>
+        <textarea id="memo-area" placeholder="メモを入力..." oninput="autoSaveMemo()"></textarea>
+        <div id="memo-timestamp">未保存</div>
     </div>
 </div>
 
@@ -141,7 +98,6 @@
             <label class="review-check-container">
                 <input type="checkbox" id="review-checkbox" onchange="toggleReviewFlag()"> 復習対象
             </label>
-            
             <span id="update-time" style="font-size:0.75rem; color:#909399;"></span>
             <button class="btn-primary" onclick="saveCurrentData()">保存</button>
         </div>
@@ -153,6 +109,7 @@
 <script src="https://www.gstatic.com/firebasejs/9.1.3/firebase-database-compat.js"></script>
 
 <script>
+// Firebase初期化
 const firebaseConfig = {
   apiKey: "AIzaSyBuU0l8CzxvUJshPljuAq5LLI8mCGG0f2g",
   authDomain: "warehs.firebaseapp.com",
@@ -165,7 +122,6 @@ const firebaseConfig = {
 firebase.initializeApp(firebaseConfig);
 const db = firebase.database();
 
-// --- 全55件のリストを復元 ---
 const dataList = [
 { id: "tax_1", title: "1-1：納税義務者と課税所得等の範囲", file: "text/1-1.txt" },
 { id: "tax_2", title: "1-2：事業年度", file: "text/1-2.txt" },
@@ -256,7 +212,10 @@ const dataList = [
 
 let currentFileId = "";
 let originalHtmlBackup = "";
+let memoSaveTimer;
+const SUBJECT_PREFIX = 'hojin';
 
+// メニュー生成
 const menuContainer = document.getElementById('menu-container');
 dataList.forEach(item => {
     const div = document.createElement('div');
@@ -266,75 +225,55 @@ dataList.forEach(item => {
     menuContainer.appendChild(div);
 });
 
-    async function updateSidebarStars() {
-        const snapshot = await db.ref('hojin/anki_sheets/' + currentFileId).once('value');
-        const allData = snapshot.val() || {};
-        
-        const items = document.querySelectorAll('.menu-item');
-        items.forEach((div, index) => {
-            const itemData = dataList[index];
-            const saved = allData[itemData.id];
-            
-            // 既存の星があれば消す
-            const oldStar = div.querySelector('.star-mark');
-            if (oldStar) oldStar.remove();
-
-            // 復習フラグがあれば星をつける
-            if (saved && saved.needsReview) {
-                const star = document.createElement('span');
-                star.className = 'star-mark';
-                star.innerText = '★ ';
-                div.prepend(star);
-            }
-        });
-    }
-
-    // 読み込み関数の修正
-    async function loadJoubun(item) {
-        currentFileId = item.id;
-        document.getElementById('current-title').innerText = item.title;
-        document.querySelectorAll('.menu-item').forEach(el => el.classList.toggle('active', el.innerText.includes(item.title)));
-
-        try {
-            const response = await fetch(item.file);
-            const text = await response.text();
-            originalHtmlBackup = parseTextToHTML(text);
-
-            const snapshot = await db.ref('hojin/anki_sheets/' + currentFileId).once('value');
-            const savedData = snapshot.val();
-
-            if (savedData) {
-                renderHTML(applyLatestClasses(savedData.html));
-                document.getElementById('update-time').innerText = savedData.timestamp ? "最終保存: " + savedData.timestamp : "";
-                // チェックボックスの状態を反映
-                document.getElementById('review-checkbox').checked = !!savedData.needsReview;
-            } else {
-                renderHTML(originalHtmlBackup);
-                document.getElementById('update-time').innerText = "未保存";
-                document.getElementById('review-checkbox').checked = false;
-            }
-        } catch (e) {
-            document.getElementById('display-area').innerHTML = "読み込みエラー";
+async function updateSidebarStars() {
+    const snapshot = await db.ref(`${SUBJECT_PREFIX}/anki_sheets`).once('value');
+    const allData = snapshot.val() || {};
+    const items = document.querySelectorAll('.menu-item');
+    items.forEach((div, index) => {
+        const itemData = dataList[index];
+        const saved = allData[itemData.id];
+        const oldStar = div.querySelector('.star-mark');
+        if (oldStar) oldStar.remove();
+        if (saved && saved.needsReview) {
+            const star = document.createElement('span');
+            star.className = 'star-mark';
+            star.innerText = '★ ';
+            div.prepend(star);
         }
-    }
-
-// 過去に保存したデータ（ただのpタグ）に、新しいクラスを無理やり当てる
-function applyLatestClasses(html) {
-    const temp = document.createElement('div');
-    temp.innerHTML = html;
-    temp.querySelectorAll('p').forEach(p => {
-        const txt = p.innerText.trim();
-        if (/^[①-⑳]/.test(txt)) p.className = "indent-1";
-        else if (/^[ア-ンイ]/.test(txt)) p.className = "indent-2";
-        else if (!p.className) p.className = "body-text";
     });
-    return temp.innerHTML;
+}
+
+async function loadJoubun(item) {
+    currentFileId = item.id;
+    document.getElementById('current-title').innerText = item.title;
+    document.querySelectorAll('.menu-item').forEach(el => el.classList.toggle('active', el.innerText.includes(item.title)));
+
+    try {
+        const response = await fetch(item.file);
+        const text = await response.text();
+        originalHtmlBackup = parseTextToHTML(text);
+
+        const snapshot = await db.ref(`${SUBJECT_PREFIX}/anki_sheets/${currentFileId}`).once('value');
+        const savedData = snapshot.val();
+
+        if (savedData) {
+            renderHTML(applyLatestClasses(savedData.html));
+            document.getElementById('update-time').innerText = savedData.timestamp ? "最終保存: " + savedData.timestamp : "";
+            document.getElementById('review-checkbox').checked = !!savedData.needsReview;
+        } else {
+            renderHTML(originalHtmlBackup);
+            document.getElementById('update-time').innerText = "未保存";
+            document.getElementById('review-checkbox').checked = false;
+        }
+    } catch (e) {
+        document.getElementById('display-area').innerHTML = "読み込みエラー";
+    }
 }
 
 function parseTextToHTML(text) {
     return text.split('\n').map(line => {
         const trimmed = line.trim();
-        if (!trimmed) return ""; 
+        if (!trimmed) return "";
         if (/^[０-９\d]．/.test(trimmed)) return `<h3>${line}</h3>`;
         if (/^\([０-９\d]\)/.test(trimmed)) return `<h4>${line}</h4>`;
         if (/^[①-⑳]/.test(trimmed)) return `<p class="indent-1">${line}</p>`;
@@ -349,10 +288,34 @@ function renderHTML(html) {
     area.querySelectorAll('.mask').forEach(setupMaskEvents);
 }
 
+function applyLatestClasses(html) {
+    const temp = document.createElement('div');
+    temp.innerHTML = html;
+    temp.querySelectorAll('p').forEach(p => {
+        const txt = p.innerText.trim();
+        if (/^[①-⑳]/.test(txt)) p.className = "indent-1";
+        else if (/^[ア-ンイ]/.test(txt)) p.className = "indent-2";
+        else if (!p.className) p.className = "body-text";
+    });
+    return temp.innerHTML;
+}
+
 function setupMaskEvents(el) {
     el.onclick = function(e) {
         if (e.target.classList.contains('remove-btn')) return;
-        this.classList.toggle('reveal');
+        if (this.classList.contains('reveal')) {
+            this.classList.remove('reveal');
+            const memoEl = this.querySelector('.wrong-memo');
+            if (memoEl) memoEl.remove();
+        } else {
+            this.classList.add('reveal');
+            if (this.dataset.memo) {
+                const memoSpan = document.createElement('span');
+                memoSpan.className = 'wrong-memo';
+                memoSpan.textContent = `(誤: ${this.dataset.memo})`;
+                this.appendChild(memoSpan);
+            }
+        }
     };
     if (!el.querySelector('.remove-btn')) {
         const btn = document.createElement('span');
@@ -363,99 +326,76 @@ function setupMaskEvents(el) {
     }
 }
 
-    function handleSelection() {
-        const sel = window.getSelection();
-        if (!sel.rangeCount || sel.toString().length === 0) return;
-        
-        // 1. 間違えた内容を入力してもらう
-        const userAnswer = prompt("【間違いメモ】どう間違えて覚えていましたか？（空欄でもOK）");
-        if (userAnswer === null) return; // キャンセルした場合は何もしない
-
-        const range = sel.getRangeAt(0);
-        const span = document.createElement('span');
-        span.className = 'mask';
-        
-        // 正解のテキストを保持
-        const correctText = sel.toString();
-        span.textContent = correctText;
-        
-        // 2. 間違いメモをデータ属性として埋め込む
-        if (userAnswer.trim() !== "") {
-            span.dataset.memo = userAnswer;
-        }
-
-        setupMaskEvents(span);
-        range.deleteContents();
-        range.insertNode(span);
-        sel.removeAllRanges();
-    }
+function handleSelection() {
+    const sel = window.getSelection();
+    if (!sel.rangeCount || sel.toString().length === 0) return;
+    const userAnswer = prompt("間違いメモ");
+    if (userAnswer === null) return;
+    const range = sel.getRangeAt(0);
+    const span = document.createElement('span');
+    span.className = 'mask';
+    span.textContent = sel.toString();
+    if (userAnswer.trim() !== "") span.dataset.memo = userAnswer;
+    setupMaskEvents(span);
+    range.deleteContents();
+    range.insertNode(span);
+    sel.removeAllRanges();
+}
 
 function removeSingleMask(maskEl) {
     const text = maskEl.firstChild.textContent;
     maskEl.parentNode.replaceChild(document.createTextNode(text), maskEl);
 }
 
-    function saveCurrentData() {
-        if (!currentFileId) return;
-        const now = new Date();
-        const timeStr = `${now.getMonth()+1}/${now.getDate()} ${now.getHours()}:${String(now.getMinutes()).padStart(2, '0')}`;
-        const html = document.getElementById('display-area').innerHTML;
-        const needsReview = document.getElementById('review-checkbox').checked;
+function saveCurrentData() {
+    if (!currentFileId) return;
+    const now = new Date();
+    const timeStr = `${now.getMonth()+1}/${now.getDate()} ${now.getHours()}:${String(now.getMinutes()).padStart(2, '0')}`;
+    const html = document.getElementById('display-area').innerHTML;
+    const needsReview = document.getElementById('review-checkbox').checked;
+    db.ref(`${SUBJECT_PREFIX}/anki_sheets/${currentFileId}`).set({
+        html: html, timestamp: timeStr, needsReview: needsReview
+    }).then(() => {
+        document.getElementById('update-time').innerText = "最終保存: " + timeStr;
+        updateSidebarStars();
+    });
+}
 
-        db.ref('hojin/anki_sheets/' + currentFileId).set({
-            html: html,
-            timestamp: timeStr,
-            needsReview: needsReview
-        }).then(() => {
-            document.getElementById('update-time').innerText = "最終保存: " + timeStr;
-            updateSidebarStars(); // サイドバーの星を更新
-        });
-    }
-
+function toggleReviewFlag() { saveCurrentData(); }
 function resetCurrentSheet() {
     if (!currentFileId || !confirm("リセットしますか？")) return;
     renderHTML(originalHtmlBackup);
-    db.ref('hojin/anki_sheets/' + currentFileId).remove();
+    db.ref(`${SUBJECT_PREFIX}/anki_sheets/${currentFileId}`).remove();
 }
-    function setupMaskEvents(el) {
-        el.onclick = function(e) {
-            if (e.target.classList.contains('remove-btn')) return;
-            
-            // すでに解除されている場合は、再度隠す（メモも消す）
-            if (this.classList.contains('reveal')) {
-                this.classList.remove('reveal');
-                const memoEl = this.querySelector('.wrong-memo');
-                if (memoEl) memoEl.remove();
-            } else {
-                // 解除する場合
-                this.classList.add('reveal');
-                
-                // 3. 保存されていた「間違いメモ」があれば表示する
-                if (this.dataset.memo) {
-                    const memoSpan = document.createElement('span');
-                    memoSpan.className = 'wrong-memo';
-                    memoSpan.textContent = `(誤: ${this.dataset.memo})`;
-                    this.appendChild(memoSpan);
-                }
-            }
-        };
 
-        if (!el.querySelector('.remove-btn')) {
-            const btn = document.createElement('span');
-            btn.className = 'remove-btn';
-            btn.innerText = '×';
-            btn.onclick = (e) => { e.stopPropagation(); removeSingleMask(el); };
-            el.appendChild(btn);
-        }
+// メモ機能
+async function loadMemo() {
+    const snapshot = await db.ref(`${SUBJECT_PREFIX}/memo`).once('value');
+    const memoData = snapshot.val();
+    if (memoData) {
+        document.getElementById('memo-area').value = memoData.text || "";
+        document.getElementById('memo-timestamp').innerText = "同期済: " + memoData.timestamp;
     }
-    function toggleReviewFlag() {
-        saveCurrentData();
-    }
+}
 
-    // 初期実行：アプリ起動時にサイドバーの星を表示
-    window.onload = () => {
-        updateSidebarStars();
-    };
+function autoSaveMemo() {
+    document.getElementById('memo-timestamp').innerText = "入力中...";
+    clearTimeout(memoSaveTimer);
+    memoSaveTimer = setTimeout(() => {
+        const text = document.getElementById('memo-area').value;
+        const now = new Date();
+        const timeStr = `${now.getMonth()+1}/${now.getDate()} ${now.getHours()}:${String(now.getMinutes()).padStart(2, '0')}`;
+        db.ref(`${SUBJECT_PREFIX}/memo`).set({ text: text, timestamp: timeStr }).then(() => {
+            document.getElementById('memo-timestamp').innerText = "自動保存: " + timeStr;
+        });
+    }, 1000);
+}
+
+// 初期化実行
+window.onload = () => {
+    updateSidebarStars();
+    loadMemo();
+};
 </script>
 </body>
 </html>

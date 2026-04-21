@@ -299,7 +299,7 @@ function setupMaskEvents(el) {
 function handleSelection() {
     const sel = window.getSelection();
     if (!sel.rangeCount || sel.toString().length === 0) return;
-    const userAnswer = prompt("【間違いメモ】どう間違えて覚えていましたか？");
+    const userAnswer = prompt("間違いメモ");
     if (userAnswer === null) return;
     const range = sel.getRangeAt(0);
     const span = document.createElement('span');
