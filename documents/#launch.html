@@ -1,0 +1,25 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <title></title>
+    <script>
+    window.onload = function() {
+        const ua = window.navigator.userAgent.toLowerCase();
+        
+        if (ua.indexOf('macintosh') !== -1) {
+            // Macの場合の移動先
+            window.location.href = 'https://example.com/mac-page';
+        } else if (ua.indexOf('windows') !== -1) {
+            // Windowsの場合の移動先
+            window.location.href = 'https://example.com/win-page';
+        } else {
+            // それ以外（スマホやLinuxなど）の移動先
+            window.location.href = 'https://example.com/other-page';
+        }
+    }
+    </script>
+</head>
+<body>
+</body>
+</html>
