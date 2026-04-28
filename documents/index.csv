@@ -6,22 +6,23 @@
 0,index.csv,index.csv
 0,index.html,index.html
 0,📁 tax,tax/
-1,📁 data,tax/data/
 1,📁 hojin,tax/hojin/
 2,index.html,tax/hojin/index.html
 2,📁 text,tax/hojin/text/
 3,index.csv,tax/hojin/text/index.csv
 3,index.html,tax/hojin/text/index.html
-1,index.html,tax/index.html
 1,📁 shohi,tax/shohi/
 2,index.html,tax/shohi/index.html
 2,📁 text,tax/shohi/text/
 3,index.csv,tax/shohi/text/index.csv
 3,index.html,tax/shohi/text/index.html
 0,📁 try,try/
+1,📁 gounamba,try/gounamba/
 1,📁 kikootsuka,try/kikootsuka/
+1,📁 kinomazaki,try/kinomazaki/
 1,📁 riotakeda,try/riotakeda/
 2,📁 chat,try/riotakeda/chat/
+3,IMG_1799.jpeg,try/riotakeda/chat/IMG_1799.jpeg
 3,IMG_1815.jpeg,try/riotakeda/chat/IMG_1815.jpeg
 3,index.html,try/riotakeda/chat/index.html
 2,📁 dailytry,try/riotakeda/dailytry/
@@ -111,11 +112,28 @@
 3,2026.02.08.19.32.html,try/riotakeda/gemini/2026.02.08.19.32.html
 2,leader.html,try/riotakeda/leader.html
 2,📁 letter,try/riotakeda/letter/
-3,attachment.pdf,try/riotakeda/letter/attachment.pdf
-3,latest.pdf,try/riotakeda/letter/latest.pdf
-3,📁 transcript,try/riotakeda/letter/transcript/
-4,comment.docx,try/riotakeda/letter/transcript/comment.docx
-4,forprint.docx,try/riotakeda/letter/transcript/forprint.docx
+3,📁 2026.02.16,try/riotakeda/letter/2026.02.16/
+4,attachment.pdf,try/riotakeda/letter/2026.02.16/attachment.pdf
+4,main.pdf,try/riotakeda/letter/2026.02.16/main.pdf
+4,📁 transcript,try/riotakeda/letter/2026.02.16/transcript/
+5,comment.docx,try/riotakeda/letter/2026.02.16/transcript/comment.docx
+5,nocomment.docx,try/riotakeda/letter/2026.02.16/transcript/nocomment.docx
+3,📁 2026.03.03,try/riotakeda/letter/2026.03.03/
+4,📁 transcript,try/riotakeda/letter/2026.03.03/transcript/
+5,せをはやみ.docx,try/riotakeda/letter/2026.03.03/transcript/せをはやみ.docx
+5,せをはやみ.pdf,try/riotakeda/letter/2026.03.03/transcript/せをはやみ.pdf
+4,せをはやみ.pdf,try/riotakeda/letter/2026.03.03/せをはやみ.pdf
+3,📁 2026.03.31,try/riotakeda/letter/2026.03.31/
+3,📁 2026.04.05,try/riotakeda/letter/2026.04.05/
+4,main.pdf,try/riotakeda/letter/2026.04.05/main.pdf
+2,📁 picture,try/riotakeda/picture/
+3,IMG_0013.jpeg,try/riotakeda/picture/IMG_0013.jpeg
+3,IMG_0396.jpeg,try/riotakeda/picture/IMG_0396.jpeg
+3,IMG_1536.jpeg,try/riotakeda/picture/IMG_1536.jpeg
+3,IMG_1732.jpeg,try/riotakeda/picture/IMG_1732.jpeg
+3,IMG_1813.jpeg,try/riotakeda/picture/IMG_1813.jpeg
+3,IMG_1814.png,try/riotakeda/picture/IMG_1814.png
+3,秋冬講習.JPG,try/riotakeda/picture/秋冬講習.JPG
 2,📁 recording,try/riotakeda/recording/
 3,2025.12.12.csv,try/riotakeda/recording/2025.12.12.csv
 3,2026.01.05.csv,try/riotakeda/recording/2026.01.05.csv
@@ -130,11 +148,6 @@
 3,play.svg,try/riotakeda/recording/play.svg
 3,player.html,try/riotakeda/recording/player.html
 3,repeat.svg,try/riotakeda/recording/repeat.svg
-2,📁 reply,try/riotakeda/reply/
-3,📁 transcript,try/riotakeda/reply/transcript/
-4,せをはやみ.docx,try/riotakeda/reply/transcript/せをはやみ.docx
-4,せをはやみ.pdf,try/riotakeda/reply/transcript/せをはやみ.pdf
-3,せをはやみ.pdf,try/riotakeda/reply/せをはやみ.pdf
 2,result.html,try/riotakeda/result.html
 2,📁 schit.net,try/riotakeda/schit.net/
 3,2023.11.21.html,try/riotakeda/schit.net/2023.11.21.html
@@ -164,3 +177,5 @@
 3,scores.html,try/ryunosuketokita/dailytry/scores.html
 2,📁 gemini,try/ryunosuketokita/gemini/
 3,2026.01.10.10.55.html,try/ryunosuketokita/gemini/2026.01.10.10.55.html
+1,📁 sanaotsuka,try/sanaotsuka/
+1,📁 yutasakai,try/yutasakai/
