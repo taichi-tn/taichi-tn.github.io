@@ -19,6 +19,8 @@
 3,index.html,tax/shohi/text/index.html
 0,📁 try,try/
 1,📁 gounamba,try/gounamba/
+2,IMG_0400.jpeg,try/gounamba/IMG_0400.jpeg
+2,IMG_0401.jpeg,try/gounamba/IMG_0401.jpeg
 1,📁 kikootsuka,try/kikootsuka/
 2,📁 gemini,try/kikootsuka/gemini/
 3,2026.01.31.08.53.html,try/kikootsuka/gemini/2026.01.31.08.53.html
@@ -130,6 +132,7 @@
 5,せをはやみ.pdf,try/riotakeda/letter/2026.03.03/transcript/せをはやみ.pdf
 4,せをはやみ.pdf,try/riotakeda/letter/2026.03.03/せをはやみ.pdf
 3,📁 2026.03.31,try/riotakeda/letter/2026.03.31/
+4,main.pdf,try/riotakeda/letter/2026.03.31/main.pdf
 3,📁 2026.04.05,try/riotakeda/letter/2026.04.05/
 4,main.pdf,try/riotakeda/letter/2026.04.05/main.pdf
 2,📁 picture,try/riotakeda/picture/
@@ -183,5 +186,36 @@
 3,scores.html,try/ryunosuketokita/dailytry/scores.html
 2,📁 gemini,try/ryunosuketokita/gemini/
 3,2026.01.10.10.55.html,try/ryunosuketokita/gemini/2026.01.10.10.55.html
-1,📁 sanaotsuka,try/sanaotsuka/
+1,📁 sanaotsuki,try/sanaotsuki/
+2,mail.JPG,try/sanaotsuki/mail.JPG
+1,📁 syutarotanaka,try/syutarotanaka/
+2,📁 dailytry,try/syutarotanaka/dailytry/
+3,📁 2024,try/syutarotanaka/dailytry/2024/
+4,📁 01,try/syutarotanaka/dailytry/2024/01/
+5,10.html,try/syutarotanaka/dailytry/2024/01/10.html
+3,📁 2026,try/syutarotanaka/dailytry/2026/
+4,📁 3,try/syutarotanaka/dailytry/2026/3/
+5,📁 31,try/syutarotanaka/dailytry/2026/3/31/
+6,1.html,try/syutarotanaka/dailytry/2026/3/31/1.html
+6,2.html,try/syutarotanaka/dailytry/2026/3/31/2.html
 1,📁 yutasakai,try/yutasakai/
+2,📁 dailytry,try/yutasakai/dailytry/
+3,📁 2024,try/yutasakai/dailytry/2024/
+4,📁 11,try/yutasakai/dailytry/2024/11/
+5,20.pdf,try/yutasakai/dailytry/2024/11/20.pdf
+5,22.pdf,try/yutasakai/dailytry/2024/11/22.pdf
+3,📁 2025,try/yutasakai/dailytry/2025/
+4,📁 01,try/yutasakai/dailytry/2025/01/
+5,25.pdf,try/yutasakai/dailytry/2025/01/25.pdf
+5,29.pdf,try/yutasakai/dailytry/2025/01/29.pdf
+5,📁 31,try/yutasakai/dailytry/2025/01/31/
+6,1.html,try/yutasakai/dailytry/2025/01/31/1.html
+6,1.pdf,try/yutasakai/dailytry/2025/01/31/1.pdf
+6,2.pdf,try/yutasakai/dailytry/2025/01/31/2.pdf
+6,IMG_0092.jpeg,try/yutasakai/dailytry/2025/01/31/IMG_0092.jpeg
+6,📁 files,try/yutasakai/dailytry/2025/01/31/files/
+7,TestFormDate-b4b04b32.css,try/yutasakai/dailytry/2025/01/31/files/TestFormDate-b4b04b32.css
+7,index-e84c4985.js.ダウンロード,try/yutasakai/dailytry/2025/01/31/files/index-e84c4985.js.ダウンロード
+7,logo_dailytry-93226e52.svg,try/yutasakai/dailytry/2025/01/31/files/logo_dailytry-93226e52.svg
+7,page-975c3a47.css,try/yutasakai/dailytry/2025/01/31/files/page-975c3a47.css
+7,thumbnail_IMG_0092.jpeg,try/yutasakai/dailytry/2025/01/31/files/thumbnail_IMG_0092.jpeg
