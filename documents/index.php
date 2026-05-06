@@ -22,7 +22,7 @@ foreach ($files as $file) {
 
     // 2. 拡張子が「txt」のファイルを除外（追加）
     // pathinfoで拡張子を取得し、小文字に変換して比較
-    if (!is_dir($path) && pathinfo($file, PATHINFO_EXTENSION) === 'txt') {
+    if (!is_dir($path) && (pathinfo($file, PATHINFO_EXTENSION) === 'txt' || pathinfo($file, PATHINFO_EXTENSION) === 'mp3')) {
         continue;
     }
 

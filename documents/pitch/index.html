@@ -1,0 +1,167 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <title>絶対音感トレーニング Pro</title>
+    <style>
+        body { font-family: 'Helvetica Neue', Arial, sans-serif; text-align: center; background: #eceff1; padding: 20px; color: #37474f; }
+        #game-container { max-width: 700px; margin: 0 auto; background: white; padding: 30px; border-radius: 20px; box-shadow: 0 10px 25px rgba(0,0,0,0.1); }
+        .btn-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 12px; margin-top: 20px; }
+        button { padding: 15px 5px; font-size: 16px; cursor: pointer; border: 1px solid #cfd8dc; border-radius: 10px; background: #fff; transition: 0.2s; font-weight: bold; }
+        button:hover { background: #f1f8ff; border-color: #2196f3; }
+        button:active { transform: scale(0.95); }
+        .black-key { background: #263238; color: white; }
+        .black-key:hover { background: #455a64; }
+        #status { margin: 10px 0; font-size: 1.1rem; color: #78909c; }
+        #play-btn { background: #2196f3; color: white; padding: 15px 50px; font-size: 1.2rem; border: none; border-radius: 50px; margin-bottom: 10px; box-shadow: 0 4px 6px rgba(33, 150, 243, 0.3); }
+        #play-btn:hover { background: #1e88e5; }
+        #result-msg { height: 60px; margin: 10px 0; font-size: 1.4rem; font-weight: bold; line-height: 1.4; }
+        
+        /* 結果画面のスタイル */
+        table { width: 100%; border-collapse: collapse; margin-top: 20px; background: white; }
+        th, td { border: 1px solid #ddd; padding: 10px; text-align: center; }
+        th { background: #f5f5f5; }
+        .res-ok { color: #4caf50; font-weight: bold; }
+        .res-ng { color: #f44336; font-weight: bold; }
+        .hidden { display: none; }
+    </style>
+</head>
+<body>
+
+<div id="game-container">
+    <div id="quiz-section">
+        <h2>音感トレーニング</h2>
+        <div id="status">第 1 / 30 問</div>
+        <button id="play-btn" onclick="playCurrentSound()">音を聴く</button>
+        <div id="result-msg"></div>
+
+        <div class="btn-grid">
+            <button onclick="checkAnswer(1)">ド</button>
+            <button class="black-key" onclick="checkAnswer(2)">ド#</button>
+            <button onclick="checkAnswer(3)">レ</button>
+            <button class="black-key" onclick="checkAnswer(4)">レ#</button>
+            <button onclick="checkAnswer(5)">ミ</button>
+            <button onclick="checkAnswer(6)">ファ</button>
+            <button class="black-key" onclick="checkAnswer(7)">ファ#</button>
+            <button onclick="checkAnswer(8)">ソ</button>
+            <button class="black-key" onclick="checkAnswer(9)">ソ#</button>
+            <button onclick="checkAnswer(10)">ラ</button>
+            <button class="black-key" onclick="checkAnswer(11)">ラ#</button>
+            <button onclick="checkAnswer(12)">シ</button>
+        </div>
+    </div>
+
+    <div id="result-section" class="hidden">
+        <h2>トレーニング結果</h2>
+        <p id="total-time" style="font-size: 1.2rem;"></p>
+        <p id="total-score" style="font-size: 1.5rem; font-weight: bold;"></p>
+        <div style="max-height: 400px; overflow-y: auto;">
+            <table id="result-table">
+                <thead>
+                    <tr>
+                        <th>問</th>
+                        <th>正解</th>
+                        <th>あなたの回答</th>
+                        <th>判定</th>
+                    </tr>
+                </thead>
+                <tbody id="result-tbody"></tbody>
+            </table>
+        </div>
+        <button onclick="location.reload()" style="margin-top: 20px; padding: 10px 30px;">もう一度挑戦する</button>
+    </div>
+</div>
+
+<script>
+    const TOTAL_QUESTIONS = 30;
+    const NOTE_NAMES = ["", "ド", "ド#", "レ", "レ#", "ミ", "ファ", "ファ#", "ソ", "ソ#", "ラ", "ラ#", "シ"];
+    
+    let currentQuestion = 1;
+    let correctCount = 0;
+    let currentAnswer = 0;
+    let audio = new Audio();
+    let canAnswer = true;
+    
+    let startTime;
+    let history = [];
+
+    function initGame() {
+        startTime = new Date();
+        prepareNextQuestion();
+    }
+
+    function prepareNextQuestion() {
+        if (currentQuestion > TOTAL_QUESTIONS) {
+            showFinalResult();
+            return;
+        }
+        document.getElementById('status').innerText = `第 ${currentQuestion} / ${TOTAL_QUESTIONS} 問`;
+        document.getElementById('result-msg').innerText = "";
+        currentAnswer = Math.floor(Math.random() * 12) + 1;
+        canAnswer = true;
+        playCurrentSound();
+    }
+
+    function playCurrentSound() {
+        audio.src = `${currentAnswer}.mp3`;
+        audio.play().catch(e => console.log("再生エラー"));
+    }
+
+    function checkAnswer(choice) {
+        if (!canAnswer) return;
+        canAnswer = false;
+
+        const isCorrect = (choice === currentAnswer);
+        if (isCorrect) correctCount++;
+
+        // 履歴に追加
+        history.push({
+            q: currentQuestion,
+            correct: NOTE_NAMES[currentAnswer],
+            user: NOTE_NAMES[choice],
+            res: isCorrect
+        });
+
+        // フィードバック表示
+        const msgArea = document.getElementById('result-msg');
+        if (isCorrect) {
+            msgArea.innerHTML = `<span style="color:green">⭕️ 正解！</span>`;
+        } else {
+            msgArea.innerHTML = `<span style="color:red">❌ 不正解...</span><br><small>正解は「${NOTE_NAMES[currentAnswer]}」でした</small>`;
+        }
+
+        setTimeout(() => {
+            currentQuestion++;
+            prepareNextQuestion();
+        }, 1500); // 正解を確認する時間を少し長めに(1.5秒)
+    }
+
+    function showFinalResult() {
+        const endTime = new Date();
+        const diffSec = Math.floor((endTime - startTime) / 1000);
+        const min = Math.floor(diffSec / 60);
+        const sec = diffSec % 60;
+
+        document.getElementById('quiz-section').classList.add('hidden');
+        document.getElementById('result-section').classList.remove('hidden');
+        
+        document.getElementById('total-time').innerText = `かかった時間: ${min}分${sec}秒`;
+        document.getElementById('total-score').innerText = `正解数: ${correctCount} / ${TOTAL_QUESTIONS}`;
+
+        const tbody = document.getElementById('result-tbody');
+        history.forEach(item => {
+            const row = tbody.insertRow();
+            row.innerHTML = `
+                <td>${item.q}</td>
+                <td>${item.correct}</td>
+                <td>${item.user}</td>
+                <td class="${item.res ? 'res-ok' : 'res-ng'}">${item.res ? '⭕️' : '❌'}</td>
+            `;
+        });
+    }
+
+    window.onload = initGame;
+</script>
+
+</body>
+</html>
