@@ -74,93 +74,125 @@
 
 <script>
     const TOTAL_QUESTIONS = 30;
-    const NOTE_NAMES = ["", "ド", "ド#", "レ", "レ#", "ミ", "ファ", "ファ#", "ソ", "ソ#", "ラ", "ラ#", "シ"];
-    
-    let currentQuestion = 1;
-    let correctCount = 0;
-    let currentAnswer = 0;
-    let audio = new Audio();
-    let canAnswer = true;
-    
-    let startTime;
-    let history = [];
+        const NOTE_NAMES = ["", "ド", "ド#", "レ", "レ#", "ミ", "ファ", "ファ#", "ソ", "ソ#", "ラ", "ラ#", "シ"];
+        
+        let currentQuestion = 1;
+        let correctCount = 0;
+        let currentAnswer = 0;
+        let audio = new Audio(); // 問題再生用
+        let canAnswer = true;
+        
+        let startTime;
+        let history = [];
 
-    function initGame() {
-        startTime = new Date();
-        prepareNextQuestion();
-    }
+        function initGame() {
+            startTime = new Date();
+            prepareNextQuestion();
+        }
 
     function prepareNextQuestion() {
-        if (currentQuestion > TOTAL_QUESTIONS) {
-            showFinalResult();
-            return;
-        }
-        document.getElementById('status').innerText = `第 ${currentQuestion} / ${TOTAL_QUESTIONS} 問`;
-        document.getElementById('result-msg').innerText = "";
-        currentAnswer = Math.floor(Math.random() * 12) + 1;
-        canAnswer = true;
-        playCurrentSound();
-    }
+                if (currentQuestion > TOTAL_QUESTIONS) {
+                    showFinalResult();
+                    return;
+                }
+                document.getElementById('status').innerText = `第 ${currentQuestion} / ${TOTAL_QUESTIONS} 問`;
+                document.getElementById('result-msg').innerText = "";
 
-    function playCurrentSound() {
-        audio.src = `${currentAnswer}.mp3`;
-        audio.play().catch(e => console.log("再生エラー"));
-    }
+                // --- 修正箇所：音の抽選ロジック ---
+                let nextAnswer;
+                const lastAnswer = currentAnswer; // 直前の正解を保持
+
+                while (true) {
+                    // 1〜12の音をランダムに選ぶ
+                    nextAnswer = Math.floor(Math.random() * 12) + 1;
+
+                    // 初回（直前の音がない場合）はそのまま決定
+                    if (lastAnswer === 0) break;
+
+                    // 以下の条件に当てはまらない場合のみループを抜ける
+                    // 1. 直前の音と同じ (nextAnswer === lastAnswer)
+                    // 2. 直前の音の半音上 (nextAnswer === lastAnswer + 1) ※12の次は1とみなす処理は不要ならシンプルに
+                    // 3. 直前の音の半音下 (nextAnswer === lastAnswer - 1)
+                    
+                    // 12音のループ（シの次にドが来ること）も考慮した判定
+                    const diff = Math.abs(nextAnswer - lastAnswer);
+                    if (diff !== 0 && diff !== 1 && diff !== 11) {
+                        break;
+                    }
+                }
+
+                currentAnswer = nextAnswer;
+                // ------------------------------
+
+                canAnswer = true;
+                playCurrentSound();
+            }
+
+        function playCurrentSound() {
+            audio.src = `${currentAnswer}.mp3`;
+            audio.play().catch(e => console.log("再生エラー"));
+        }
 
     function checkAnswer(choice) {
-        if (!canAnswer) return;
-        canAnswer = false;
+            if (!canAnswer) return;
+            canAnswer = false;
 
-        const isCorrect = (choice === currentAnswer);
-        if (isCorrect) correctCount++;
+            // 1. 【追加】現在鳴っている問題の音を停止・リセット
+            audio.pause();
+            audio.currentTime = 0;
 
-        // 履歴に追加
-        history.push({
-            q: currentQuestion,
-            correct: NOTE_NAMES[currentAnswer],
-            user: NOTE_NAMES[choice],
-            res: isCorrect
-        });
+            const isCorrect = (choice === currentAnswer);
+            if (isCorrect) correctCount++;
 
-        // フィードバック表示
-        const msgArea = document.getElementById('result-msg');
-        if (isCorrect) {
-            msgArea.innerHTML = `<span style="color:green">⭕️ 正解！</span>`;
-        } else {
-            msgArea.innerHTML = `<span style="color:red">❌ 不正解...</span><br><small>正解は「${NOTE_NAMES[currentAnswer]}」でした</small>`;
+            // 履歴に追加
+            history.push({
+                q: currentQuestion,
+                correct: NOTE_NAMES[currentAnswer],
+                user: NOTE_NAMES[choice],
+                res: isCorrect
+            });
+
+            // フィードバック表示
+            const msgArea = document.getElementById('result-msg');
+            if (isCorrect) {
+                msgArea.innerHTML = `<span style="color:green">⭕️ 正解！</span>`;
+            } else {
+                msgArea.innerHTML = `<span style="color:red">❌ 不正解...</span><br><small>正解は「${NOTE_NAMES[currentAnswer]}」でした</small>`;
+            }
+
+            // 3. 【変更】1秒（1000ミリ秒）待ってから次の問題へ
+            setTimeout(() => {
+                currentQuestion++;
+                prepareNextQuestion();
+            }, 3000);
         }
 
-        setTimeout(() => {
-            currentQuestion++;
-            prepareNextQuestion();
-        }, 1500); // 正解を確認する時間を少し長めに(1.5秒)
-    }
+        function showFinalResult() {
+            const endTime = new Date();
+            const diffSec = Math.floor((endTime - startTime) / 1000);
+            const min = Math.floor(diffSec / 60);
+            const sec = diffSec % 60;
 
-    function showFinalResult() {
-        const endTime = new Date();
-        const diffSec = Math.floor((endTime - startTime) / 1000);
-        const min = Math.floor(diffSec / 60);
-        const sec = diffSec % 60;
+            document.getElementById('quiz-section').classList.add('hidden');
+            document.getElementById('result-section').classList.remove('hidden');
+            
+            document.getElementById('total-time').innerText = `かかった時間: ${min}分${sec}秒`;
+            document.getElementById('total-score').innerText = `正解数: ${correctCount} / ${TOTAL_QUESTIONS}`;
 
-        document.getElementById('quiz-section').classList.add('hidden');
-        document.getElementById('result-section').classList.remove('hidden');
-        
-        document.getElementById('total-time').innerText = `かかった時間: ${min}分${sec}秒`;
-        document.getElementById('total-score').innerText = `正解数: ${correctCount} / ${TOTAL_QUESTIONS}`;
+            const tbody = document.getElementById('result-tbody');
+            tbody.innerHTML = ""; // 念のため初期化
+            history.forEach(item => {
+                const row = tbody.insertRow();
+                row.innerHTML = `
+                    <td>${item.q}</td>
+                    <td>${item.correct}</td>
+                    <td>${item.user}</td>
+                    <td class="${item.res ? 'res-ok' : 'res-ng'}">${item.res ? '⭕️' : '❌'}</td>
+                `;
+            });
+        }
 
-        const tbody = document.getElementById('result-tbody');
-        history.forEach(item => {
-            const row = tbody.insertRow();
-            row.innerHTML = `
-                <td>${item.q}</td>
-                <td>${item.correct}</td>
-                <td>${item.user}</td>
-                <td class="${item.res ? 'res-ok' : 'res-ng'}">${item.res ? '⭕️' : '❌'}</td>
-            `;
-        });
-    }
-
-    window.onload = initGame;
+        window.onload = initGame;
 </script>
 
 </body>
