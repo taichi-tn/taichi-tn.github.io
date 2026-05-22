@@ -366,114 +366,100 @@ function resetCurrentSheet() {
     db.ref(`${SUBJECT_PREFIX}/mistake/${currentFileId}`).remove();
 }
 
-/* --- 改修：日付が切り替わったら自動的に時間を0リセットする機構 --- */
-async function loadSavedTimer() {
-    try {
-        // 今日の日付を取得 (フォーマット例: "2026-05-22")
-        const todayStr = new Date().toISOString().split('T')[0];
-        
-        // 時間データと同時に、最後に更新された日付データも取得する
-        const snapshot = await db.ref(`${SUBJECT_PREFIX}/timer_data`).once('value');
-        const timerData = snapshot.val() || { study_time: "00:00:00", last_date: todayStr };
-        
-        let storedTimeStr = timerData.study_time || "00:00:00";
-        
-        // もし保存されている日付が「今日」と違っていたら、日付が変わったと判定
-        if (timerData.last_date !== todayStr) {
-            storedTimeStr = "00:00:00"; // 画面表示用の時間をリセット
+    /* --- 改修：日付リセット ＆ 履歴保存機構 --- */
+    async function loadSavedTimer() {
+        try {
+            const todayStr = new Date().toISOString().split('T')[0];
+            const snapshot = await db.ref(`${SUBJECT_PREFIX}/timer_data`).once('value');
+            const timerData = snapshot.val() || { study_time: "00:00:00", last_date: todayStr };
             
-            // Firebase側も新しい日付と0時間で初期化（上書き保存）
-            await db.ref(`${SUBJECT_PREFIX}/timer_data`).set({
-                study_time: "00:00:00",
-                last_date: todayStr
-            });
-        }
-        
-        elapsedTime = timeStrToMs(storedTimeStr);
-        sessionActiveTime = elapsedTime;
-        document.getElementById('timer-display').innerText = `(${storedTimeStr})`;
-    } catch (error) {
-        console.error("タイマーの読み込み・リセット処理に失敗しました:", error);
-        document.getElementById('timer-display').innerText = `(00:00:00)`;
-    }
-}
-
-function startTimer() {
-    if (timerInterval !== null) return;
-
-    startTime = Date.now() - elapsedTime;
-    
-    timerInterval = setInterval(() => {
-        elapsedTime = Date.now() - startTime;
-        document.getElementById('timer-display').innerText = `(${formatTime(elapsedTime)})`;
-    }, 1000);
-
-    document.getElementById('start-btn').disabled = true;
-    document.getElementById('stop-btn').disabled = false;
-    document.getElementById('start-btn').innerText = "再開";
-}
-
-function stopTimer() {
-    if (timerInterval === null) return;
-
-    clearInterval(timerInterval);
-    timerInterval = null;
-
-    const freshlyAddedMs = elapsedTime - sessionActiveTime;
-    sessionActiveTime = elapsedTime;
-
-    document.getElementById('start-btn').disabled = false;
-    document.getElementById('stop-btn').disabled = true;
-
-    if (freshlyAddedMs > 0) {
-        const todayStr = new Date().toISOString().split('T')[0];
-        const timerRef = db.ref(`${SUBJECT_PREFIX}/timer_data`);
-        
-        timerRef.once('value').then((snapshot) => {
-            const currentData = snapshot.val() || { study_time: "00:00:00", last_date: todayStr };
+            let storedTimeStr = timerData.study_time || "00:00:00";
             
-            // 保存時にも日付の再チェック（開いたまま日付を跨いで停止した場合への対策）
-            let baseTimeStr = currentData.study_time;
-            if (currentData.last_date !== todayStr) {
-                baseTimeStr = "00:00:00"; // 日付が違っていれば前日分は合算しない
+            if (timerData.last_date !== todayStr) {
+                storedTimeStr = "00:00:00";
+                await db.ref(`${SUBJECT_PREFIX}/timer_data`).set({
+                    study_time: "00:00:00",
+                    last_date: todayStr
+                });
             }
             
-            const newTotalMs = freshlyAddedMs + timeStrToMs(baseTimeStr);
-            const newTotalStr = formatTime(newTotalMs);
-            
-            return timerRef.set({
-                study_time: newTotalStr,
-                last_date: todayStr
-            });
-        }).catch((error) => {
-            console.error("時間自動更新エラー: ", error);
-        });
+            elapsedTime = timeStrToMs(storedTimeStr);
+            sessionActiveTime = elapsedTime;
+            document.getElementById('timer-display').innerText = `(${storedTimeStr})`;
+        } catch (error) {
+            console.error("タイマーの読み込みに失敗しました:", error);
+            document.getElementById('timer-display').innerText = `(00:00:00)`;
+        }
     }
-}
 
-function formatTime(ms) {
-    const totalSeconds = Math.floor(ms / 1000);
-    const hours = Math.floor(totalSeconds / 3600);
-    const minutes = Math.floor((totalSeconds % 3600) / 60);
-    const seconds = totalSeconds % 60;
+    function startTimer() {
+        if (timerInterval !== null) return;
+        startTime = Date.now() - elapsedTime;
+        timerInterval = setInterval(() => {
+            elapsedTime = Date.now() - startTime;
+            document.getElementById('timer-display').innerText = `(${formatTime(elapsedTime)})`;
+        }, 1000);
+        document.getElementById('start-btn').disabled = true;
+        document.getElementById('stop-btn').disabled = false;
+        document.getElementById('start-btn').innerText = "再開";
+    }
 
-    const hDisplay = String(hours).padStart(2, '0');
-    const mDisplay = String(minutes).padStart(2, '0');
-    const sDisplay = String(seconds).padStart(2, '0');
+    function stopTimer() {
+        if (timerInterval === null) return;
 
-    return `${hDisplay}:${mDisplay}:${sDisplay}`;
-}
+        clearInterval(timerInterval);
+        timerInterval = null;
 
-function timeStrToMs(timeStr) {
-    const parts = timeStr.split(':');
-    if (parts.length !== 3) return 0;
-    const hours = parseInt(parts[0], 10) || 0;
-    const minutes = parseInt(parts[1], 10) || 0;
-    const seconds = parseInt(parts[2], 10) || 0;
-    return ((hours * 3600) + (minutes * 60) + seconds) * 1000;
-}
-/* ---------------------------------------------------- */
+        const freshlyAddedMs = elapsedTime - sessionActiveTime;
+        sessionActiveTime = elapsedTime;
 
+        document.getElementById('start-btn').disabled = false;
+        document.getElementById('stop-btn').disabled = true;
+
+        if (freshlyAddedMs > 0) {
+            const todayStr = new Date().toISOString().split('T')[0];
+            const timerRef = db.ref(`${SUBJECT_PREFIX}/timer_data`);
+            
+            timerRef.once('value').then((snapshot) => {
+                const currentData = snapshot.val() || { study_time: "00:00:00", last_date: todayStr };
+                
+                let baseTimeStr = currentData.study_time;
+                if (currentData.last_date !== todayStr) {
+                    baseTimeStr = "00:00:00";
+                }
+                
+                const newTotalMs = freshlyAddedMs + timeStrToMs(baseTimeStr);
+                const newTotalStr = formatTime(newTotalMs);
+                
+                // ① 現在のリアルタイム用タイマーを更新
+                timerRef.set({
+                    study_time: newTotalStr,
+                    last_date: todayStr
+                });
+
+                // ② 【追加】履歴用(history)にも今日の日付で学習時間を保存・更新
+                db.ref(`${SUBJECT_PREFIX}/history/${todayStr}`).set(newTotalStr);
+
+            }).catch((error) => {
+                console.error("時間自動更新エラー: ", error);
+            });
+        }
+    }
+
+    function formatTime(ms) {
+        const totalSeconds = Math.floor(ms / 1000);
+        const hours = Math.floor(totalSeconds / 3600);
+        const minutes = Math.floor((totalSeconds % 3600) / 60);
+        const seconds = totalSeconds % 60;
+        return `${String(hours).padStart(2, '0')}:${String(minutes).padStart(2, '0')}:${String(seconds).padStart(2, '0')}`;
+    }
+
+    function timeStrToMs(timeStr) {
+        const parts = timeStr.split(':');
+        if (parts.length !== 3) return 0;
+        return ((parseInt(parts[0], 10) || 0) * 3600 + (parseInt(parts[1], 10) || 0) * 60 + (parseInt(parts[2], 10) || 0)) * 1000;
+    }
+    /* ---------------------------------------------------- */
 // メモ機能
 async function loadMemo() {
     const snapshot = await db.ref(`${SUBJECT_PREFIX}/memo`).once('value');
