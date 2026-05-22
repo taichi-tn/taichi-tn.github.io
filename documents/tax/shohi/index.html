@@ -210,8 +210,8 @@ const SUBJECT_PREFIX = 'shohi';
 // タイマー用変数
 let timerInterval = null;
 let startTime = 0;
-let elapsedTime = 0;       // 画面に表示する累計ミリ秒数
-let sessionActiveTime = 0; // 前回停止ボタンを押した時（またはロード時）の、今回のセッションでの基準ミリ秒数
+let elapsedTime = 0;
+let sessionActiveTime = 0;
 
 // メニュー生成
 const menuContainer = document.getElementById('menu-container');
@@ -366,17 +366,34 @@ function resetCurrentSheet() {
     db.ref(`${SUBJECT_PREFIX}/mistake/${currentFileId}`).remove();
 }
 
-/* --- 改修：初期ロード時にRDから累計時間を取得＆再開処理の整合化 --- */
+/* --- 改修：日付が切り替わったら自動的に時間を0リセットする機構 --- */
 async function loadSavedTimer() {
     try {
-        const snapshot = await db.ref(`${SUBJECT_PREFIX}/study_time`).once('value');
-        const storedTimeStr = snapshot.val() || "00:00:00";
-        // 文字列をミリ秒に変換して初期保持
+        // 今日の日付を取得 (フォーマット例: "2026-05-22")
+        const todayStr = new Date().toISOString().split('T')[0];
+        
+        // 時間データと同時に、最後に更新された日付データも取得する
+        const snapshot = await db.ref(`${SUBJECT_PREFIX}/timer_data`).once('value');
+        const timerData = snapshot.val() || { study_time: "00:00:00", last_date: todayStr };
+        
+        let storedTimeStr = timerData.study_time || "00:00:00";
+        
+        // もし保存されている日付が「今日」と違っていたら、日付が変わったと判定
+        if (timerData.last_date !== todayStr) {
+            storedTimeStr = "00:00:00"; // 画面表示用の時間をリセット
+            
+            // Firebase側も新しい日付と0時間で初期化（上書き保存）
+            await db.ref(`${SUBJECT_PREFIX}/timer_data`).set({
+                study_time: "00:00:00",
+                last_date: todayStr
+            });
+        }
+        
         elapsedTime = timeStrToMs(storedTimeStr);
-        sessionActiveTime = elapsedTime; // セッション基準値も同期
+        sessionActiveTime = elapsedTime;
         document.getElementById('timer-display').innerText = `(${storedTimeStr})`;
     } catch (error) {
-        console.error("タイマーの読み込みに失敗しました:", error);
+        console.error("タイマーの読み込み・リセット処理に失敗しました:", error);
         document.getElementById('timer-display').innerText = `(00:00:00)`;
     }
 }
@@ -384,7 +401,6 @@ async function loadSavedTimer() {
 function startTimer() {
     if (timerInterval !== null) return;
 
-    // 現在時刻から、これまでの累積時間(elapsedTime)を引いたものをスタート地点にする
     startTime = Date.now() - elapsedTime;
     
     timerInterval = setInterval(() => {
@@ -403,7 +419,6 @@ function stopTimer() {
     clearInterval(timerInterval);
     timerInterval = null;
 
-    // 今回のセッションで純粋に増えた時間（ミリ秒）
     const freshlyAddedMs = elapsedTime - sessionActiveTime;
     sessionActiveTime = elapsedTime;
 
@@ -411,12 +426,25 @@ function stopTimer() {
     document.getElementById('stop-btn').disabled = true;
 
     if (freshlyAddedMs > 0) {
-        const timeRef = db.ref(`${SUBJECT_PREFIX}/study_time`);
-        timeRef.once('value').then((snapshot) => {
-            const currentStoredTimeStr = snapshot.val() || "00:00:00";
-            const newTotalMs = freshlyAddedMs + timeStrToMs(currentStoredTimeStr);
+        const todayStr = new Date().toISOString().split('T')[0];
+        const timerRef = db.ref(`${SUBJECT_PREFIX}/timer_data`);
+        
+        timerRef.once('value').then((snapshot) => {
+            const currentData = snapshot.val() || { study_time: "00:00:00", last_date: todayStr };
+            
+            // 保存時にも日付の再チェック（開いたまま日付を跨いで停止した場合への対策）
+            let baseTimeStr = currentData.study_time;
+            if (currentData.last_date !== todayStr) {
+                baseTimeStr = "00:00:00"; // 日付が違っていれば前日分は合算しない
+            }
+            
+            const newTotalMs = freshlyAddedMs + timeStrToMs(baseTimeStr);
             const newTotalStr = formatTime(newTotalMs);
-            return timeRef.set(newTotalStr);
+            
+            return timerRef.set({
+                study_time: newTotalStr,
+                last_date: todayStr
+            });
         }).catch((error) => {
             console.error("時間自動更新エラー: ", error);
         });
@@ -472,7 +500,7 @@ function autoSaveMemo() {
 window.onload = () => {
     updateSidebarStars();
     loadMemo();
-    loadSavedTimer(); // 改修：ページ読み込み時にタイマーデータを取得
+    loadSavedTimer();
 };
 </script>
 </body>
