@@ -22,7 +22,6 @@
             display: flex; flex-direction: column; height: 100vh;
         }
         
-        /* 改修：左上の科目名タイトルのスタイル（背景のeeeと揃えてパディングを設定） */
         .sidebar-title-area {
             font-size: 0.85rem;
             padding: 15px 20px;
@@ -30,9 +29,8 @@
             color: #666;
             font-weight: bold;
         }
-        /* 改修：タイマーも明朝体にして、文字色や太さを科目名と統一 */
         #timer-display {
-            font-family: inherit; /* bodyの明朝体を引き継ぐ */
+            font-family: inherit;
             font-weight: inherit;
             color: inherit;
             margin-left: 5px;
@@ -90,10 +88,9 @@
 <body>
 
 <div id="sidebar">
-    <!-- 改修：枠をなくし、消費税法の後ろにそのままタイムカウントが続く形に変更 -->
     <div style="display: flex; align-items: center; justify-content: space-between; background: #eee; padding-right: 10px;">
         <div class="sidebar-title-area">
-            消費税法<span id="timer-display">(00:00:00)</span>
+            消費税法<span id="timer-display">(読み込み中...)</span>
         </div>
         <a href="../hojin/index.html" style="font-size: 0.7rem; color: var(--primary-blue); text-decoration: none; border: 1px solid; padding: 2px 5px; border-radius: 3px; background: #fff;">法人税へ</a>
     </div>
@@ -191,7 +188,7 @@ const dataList = [
     { id: "tax_41", title: "8-2：課税資産の譲渡等及び特定課税仕入れについての確定申告及び納付", file: "text/8-2.txt" },
     { id: "tax_42", title: "8-3：還付請求申告及び還付", file: "text/8-3.txt" },
     { id: "tax_43", title: "8-4：電子情報処理組織による申告の特例", file: "text/8-4.txt" },
-    { id: "tax_44", title: "8-5：引取りにかかる課税貨物についての申告及び納付", file: "text/8-5.txt" },
+    { id: "tax_44", title: "8-5：引引きにかかる課税貨物についての申告及び納付", file: "text/8-5.txt" },
     { id: "tax_45", title: "8-6：更生の請求", file: "text/8-6.txt" },
     { id: "tax_46", title: "9-1：納税義務の免除が適用されなくなった場合等の届出", file: "text/9-1.txt" },
     { id: "tax_47", title: "9-2：国・地方公共団体等に対する特例", file: "text/9-2.txt" },
@@ -213,8 +210,8 @@ const SUBJECT_PREFIX = 'shohi';
 // タイマー用変数
 let timerInterval = null;
 let startTime = 0;
-let elapsedTime = 0;       // 今回のセッションで計測されたミリ秒数
-let sessionActiveTime = 0; // 前回停止ボタンを押した時からの、今回の純粋な増加時間（ミリ秒）
+let elapsedTime = 0;       // 画面に表示する累計ミリ秒数
+let sessionActiveTime = 0; // 前回停止ボタンを押した時（またはロード時）の、今回のセッションでの基準ミリ秒数
 
 // メニュー生成
 const menuContainer = document.getElementById('menu-container');
@@ -369,10 +366,25 @@ function resetCurrentSheet() {
     db.ref(`${SUBJECT_PREFIX}/mistake/${currentFileId}`).remove();
 }
 
-/* --- 改修：一時停止・再開・停止時の自動更新タイマー処理 --- */
+/* --- 改修：初期ロード時にRDから累計時間を取得＆再開処理の整合化 --- */
+async function loadSavedTimer() {
+    try {
+        const snapshot = await db.ref(`${SUBJECT_PREFIX}/study_time`).once('value');
+        const storedTimeStr = snapshot.val() || "00:00:00";
+        // 文字列をミリ秒に変換して初期保持
+        elapsedTime = timeStrToMs(storedTimeStr);
+        sessionActiveTime = elapsedTime; // セッション基準値も同期
+        document.getElementById('timer-display').innerText = `(${storedTimeStr})`;
+    } catch (error) {
+        console.error("タイマーの読み込みに失敗しました:", error);
+        document.getElementById('timer-display').innerText = `(00:00:00)`;
+    }
+}
+
 function startTimer() {
     if (timerInterval !== null) return;
 
+    // 現在時刻から、これまでの累積時間(elapsedTime)を引いたものをスタート地点にする
     startTime = Date.now() - elapsedTime;
     
     timerInterval = setInterval(() => {
@@ -391,6 +403,7 @@ function stopTimer() {
     clearInterval(timerInterval);
     timerInterval = null;
 
+    // 今回のセッションで純粋に増えた時間（ミリ秒）
     const freshlyAddedMs = elapsedTime - sessionActiveTime;
     sessionActiveTime = elapsedTime;
 
@@ -459,6 +472,7 @@ function autoSaveMemo() {
 window.onload = () => {
     updateSidebarStars();
     loadMemo();
+    loadSavedTimer(); // 改修：ページ読み込み時にタイマーデータを取得
 };
 </script>
 </body>
