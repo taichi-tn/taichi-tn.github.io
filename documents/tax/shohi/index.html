@@ -407,45 +407,40 @@ function resetCurrentSheet() {
     function stopTimer() {
         if (timerInterval === null) return;
 
+        // ① タイマーを完全に止める
         clearInterval(timerInterval);
         timerInterval = null;
 
-        const freshlyAddedMs = elapsedTime - sessionActiveTime;
-        sessionActiveTime = elapsedTime;
-
+        // ボタンの状態を戻す
         document.getElementById('start-btn').disabled = false;
         document.getElementById('stop-btn').disabled = true;
 
-        if (freshlyAddedMs > 0) {
-            const todayStr = new Date().toISOString().split('T')[0];
-            const timerRef = db.ref(`${SUBJECT_PREFIX}/timer_data`);
-            
-            timerRef.once('value').then((snapshot) => {
-                const currentData = snapshot.val() || { study_time: "00:00:00", last_date: todayStr };
-                
-                let baseTimeStr = currentData.study_time;
-                if (currentData.last_date !== todayStr) {
-                    baseTimeStr = "00:00:00";
-                }
-                
-                const newTotalMs = freshlyAddedMs + timeStrToMs(baseTimeStr);
-                const newTotalStr = formatTime(newTotalMs);
-                
-                // ① 現在のリアルタイム用タイマーを更新
-                timerRef.set({
-                    study_time: newTotalStr,
-                    last_date: todayStr
-                });
+        // ② 停止した「その瞬間」の画面上の時間を取得 (例: "00:01:15")
+        // ※画面の文字から「( )」を取り除いて純粋な時間文字列にする
+        const currentTimerStr = document.getElementById('timer-display').innerText.replace(/[()]/g, '');
+        const todayStr = new Date().toISOString().split('T')[0];
 
-                // ② 【追加】履歴用(history)にも今日の日付で学習時間を保存・更新
-                db.ref(`${SUBJECT_PREFIX}/history/${todayStr}`).set(newTotalStr);
+        console.log("【タイマー停止】保存する時間:", currentTimerStr, "日付:", todayStr);
 
-            }).catch((error) => {
-                console.error("時間自動更新エラー: ", error);
-            });
-        }
+        // ③ 同時に2つの場所へ保存（リアルタイム用 ＆ 履歴用）
+        // 確実を期すため、Promise.allで同時にFirebaseへ書き込みます
+        Promise.all([
+            // 1. 今日のリアルタイムタイマー状態を保存
+            db.ref(`${SUBJECT_PREFIX}/timer_data`).set({
+                study_time: currentTimerStr,
+                last_date: todayStr
+            }),
+            // 2. 日付ごとの履歴フォルダ(history)に時間を保存（何回押してもその日の最新時間に上書き）
+            db.ref(`${SUBJECT_PREFIX}/history/${todayStr}`).set(currentTimerStr)
+        ]).then(() => {
+            console.log("Firebaseへの保存がすべて成功しました！");
+            // 次回の計測のために、セッション上の基準時間を現在の時間に同期
+            sessionActiveTime = elapsedTime;
+        }).catch((error) => {
+            console.error("Firebaseへの保存中にエラーが発生しました:", error);
+        });
     }
-
+    
     function formatTime(ms) {
         const totalSeconds = Math.floor(ms / 1000);
         const hours = Math.floor(totalSeconds / 3600);
