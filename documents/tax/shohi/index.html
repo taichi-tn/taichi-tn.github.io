@@ -90,7 +90,7 @@
 <div id="sidebar">
     <div style="display: flex; align-items: center; justify-content: space-between; background: #eee; padding-right: 10px;">
         <div class="sidebar-title-area">
-            消費税法<span id="timer-display">(読み込み中...)</span>
+            消費税法<span id="timer-display">(読込中)</span>
         </div>
         <a href="../hojin/index.html" style="font-size: 0.7rem; color: var(--primary-blue); text-decoration: none; border: 1px solid; padding: 2px 5px; border-radius: 3px; background: #fff;">法人税へ</a>
     </div>
@@ -118,7 +118,7 @@
             </div>
 
             <label class="review-check-container">
-                <input type="checkbox" id="review-checkbox" onchange="toggleReviewFlag()"> 復習対象
+                <input type="checkbox" id="review-checkbox" onchange="toggleReviewFlag()"> 復習
             </label>
             <span id="update-time" style="font-size:0.75rem; color:#909399;"></span>
             <button class="btn-primary" onclick="saveCurrentData()">保存</button>
@@ -199,7 +199,7 @@ const dataList = [
     { id: "tax_52", title: "9-7：適格請求書発行事業者の登録に関する経過措置等", file: "text/9-7.txt" },
     { id: "tax_53", title: "9-8：適格請求書発行事業者の登録等", file: "text/9-8.txt" },
     { id: "tax_54", title: "9-9：適格請求書発行事業者の義務等", file: "text/9-9.txt" },
-    { id: "tax_55", title: "9-10：適格請求書発行事業者となる小規模事業者に係る税額控除に関する経過措置（2割特例）", file: "text/9-10.txt" },
+    { id: "tax_55", title: "9-10：適格請求書発行事業者となる小規模事業者に係る税額控除に関する経過措置", file: "text/9-10.txt" },
 ];
 
 let currentFileId = "";
@@ -256,7 +256,7 @@ async function loadJoubun(item) {
 
         if (savedData) {
             renderHTML(applyLatestClasses(savedData.html));
-            document.getElementById('update-time').innerText = savedData.timestamp ? "最終保存: " + savedData.timestamp : "";
+            document.getElementById('update-time').innerText = savedData.timestamp ? "保存: " + savedData.timestamp : "";
             document.getElementById('review-checkbox').checked = !!savedData.needsReview;
         } else {
             renderHTML(originalHtmlBackup);
