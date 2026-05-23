@@ -27,7 +27,8 @@
 <body>
 
 <div class="container">
-    <h1>消費税法 学習記録ログ</h1>
+    <!-- タイトルを総合学習記録に変更 -->
+    <h1>総合 学習記録ログ</h1>
     
     <table>
         <thead>
@@ -44,7 +45,7 @@
     </table>
 
     <!-- メイン画面に戻るボタン（パスは環境に合わせて調整してください） -->
-    <a href="index.html" class="back-link">← 暗記ツールに戻る</a>
+    <a href="../index.html" class="back-link">← 暗記ツールに戻る</a>
 </div>
 
 <!-- Firebase SDK -->
@@ -64,33 +65,41 @@ const firebaseConfig = {
 };
 firebase.initializeApp(firebaseConfig);
 const db = firebase.database();
-const SUBJECT_PREFIX = 'shohi';
 
 async function loadHistoryLog() {
     const tbody = document.getElementById('log-table-body');
     
     try {
-        // history ノードからデータを取得
-        const snapshot = await db.ref(`${SUBJECT_PREFIX}/history`).once('value');
-        const historyData = snapshot.val();
+        // 【修正】新しく作ったトップ階層の `logs` フォルダからデータを取得
+        const snapshot = await db.ref(`logs`).once('value');
+        const allLogsData = snapshot.val();
         
-        if (!historyData) {
+        if (!allLogsData) {
             tbody.innerHTML = `<tr><td colspan="2" class="no-data">まだ学習記録がありません。</td></tr>`;
             return;
         }
         
-        // 日付の新しい順（降順）に並び替えるために、キー配列を取得してリバース
-        const dates = Object.keys(historyData).sort().reverse();
+        // logs の中から「today」フォルダを除外した、日付キー（YYYY-MM-DD）だけを抜き出す
+        const dates = Object.keys(allLogsData).filter(key => key !== 'today');
+        
+        if (dates.length === 0) {
+            tbody.innerHTML = `<tr><td colspan="2" class="no-data">まだ学習記録がありません。</td></tr>`;
+            return;
+        }
+        
+        // 日付の新しい順（降順）に並び替える
+        dates.sort().reverse();
         
         let htmlRows = "";
         dates.forEach(date => {
-            const time = historyData[date];
+            const time = allLogsData[date];
             // YYYY-MM-DD を YYYY年MM月DD日 に見やすく整形
             const formattedDate = date.replace(/(\d{4})-(\d{2})-(\d{2})/, '$1年$2月$3日');
             
+            // 【修正】<tr> の直下に <td> が来るようにHTML構造を修正し、日付を太字にする場合は td 内に strong を配置
             htmlRows += `
                 <tr>
-                    <strong><td>${formattedDate}</td></strong>
+                    <td><strong>${formattedDate}</strong></td>
                     <td>${time}</td>
                 </tr>
             `;
