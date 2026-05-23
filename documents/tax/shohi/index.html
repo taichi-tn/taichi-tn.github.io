@@ -354,7 +354,7 @@ function saveCurrentData() {
     db.ref(`${SUBJECT_PREFIX}/mistake/${currentFileId}`).set({
         html: html, timestamp: timeStr, needsReview: needsReview
     }).then(() => {
-        document.getElementById('update-time').innerText = "最終保存: " + timeStr;
+        document.getElementById('update-time').innerText = "保存: " + timeStr;
         updateSidebarStars();
     });
 }
