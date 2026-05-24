@@ -396,94 +396,108 @@ function resetCurrentSheet() {
     db.ref(`${SUBJECT_PREFIX}/anki_sheets/${currentFileId}`).remove();
 }
 
-    /* --- 改修：日付リセット ＆ 履歴保存機構 --- */
-    async function loadSavedTimer() {
-        try {
-            const todayStr = new Date().toISOString().split('T')[0];
-            const snapshot = await db.ref(`shohi/timer_data`).once('value');
-            const timerData = snapshot.val() || { study_time: "00:00:00", last_date: todayStr };
-            
-            let storedTimeStr = timerData.study_time || "00:00:00";
-            
-            if (timerData.last_date !== todayStr) {
-                storedTimeStr = "00:00:00";
-                await db.ref(`shohi/timer_data`).set({
-                    study_time: "00:00:00",
-                    last_date: todayStr
-                });
-            }
-            
-            elapsedTime = timeStrToMs(storedTimeStr);
-            sessionActiveTime = elapsedTime;
-            document.getElementById('timer-display').innerText = `(${storedTimeStr})`;
-        } catch (error) {
-            console.error("タイマーの読み込みに失敗しました:", error);
-            document.getElementById('timer-display').innerText = `(00:00:00)`;
-        }
-    }
-
-    function startTimer() {
-        if (timerInterval !== null) return;
-        startTime = Date.now() - elapsedTime;
-        timerInterval = setInterval(() => {
-            elapsedTime = Date.now() - startTime;
-            document.getElementById('timer-display').innerText = `(${formatTime(elapsedTime)})`;
-        }, 1000);
-        document.getElementById('start-btn').disabled = true;
-        document.getElementById('stop-btn').disabled = false;
-        document.getElementById('start-btn').innerText = "再開";
-    }
-
-    function stopTimer() {
-        if (timerInterval === null) return;
-
-        // ① タイマーを完全に止める
-        clearInterval(timerInterval);
-        timerInterval = null;
-
-        // ボタンの状態を戻す
-        document.getElementById('start-btn').disabled = false;
-        document.getElementById('stop-btn').disabled = true;
-
-        // ② 停止した「その瞬間」の画面上の時間を取得 (例: "00:01:15")
-        // ※画面の文字から「( )」を取り除いて純粋な時間文字列にする
-        const currentTimerStr = document.getElementById('timer-display').innerText.replace(/[()]/g, '');
-        const todayStr = new Date().toISOString().split('T')[0];
-
-        console.log("【タイマー停止】保存する時間:", currentTimerStr, "日付:", todayStr);
-
-        // ③ 同時に2つの場所へ保存（リアルタイム用 ＆ 履歴用）
-        // 確実を期すため、Promise.allで同時にFirebaseへ書き込みます
-        Promise.all([
-            // 1. 今日のリアルタイムタイマー状態を保存
-            db.ref(`shohi/timer_data`).set({
-                study_time: currentTimerStr,
+    /* --- 改修：トップ階層の logs フォルダで一括管理 --- */
+async function loadSavedTimer() {
+    try {
+        const todayStr = new Date().toLocaleDateString('sv-SE');
+        
+        // トップ階層の logs/today からデータを読み込む
+        const snapshot = await db.ref(`logs/today`).once('value');
+        const timerData = snapshot.val();
+        
+        let storedTimeStr = "00:00:00";
+        
+        if (timerData && timerData.last_date === todayStr) {
+            storedTimeStr = timerData.study_time || "00:00:00";
+            console.log("【タイマー読込】今日のデータを引き継ぎます:", storedTimeStr);
+        } else {
+            console.log("【タイマー読込】日付が変わったため 00:00:00 にリセットします。");
+            await db.ref(`logs/today`).set({
+                study_time: "00:00:00",
                 last_date: todayStr
-            }),
-            // 2. 日付ごとの履歴フォルダ(history)に時間を保存（何回押してもその日の最新時間に上書き）
-            db.ref(`shohi/history/${todayStr}`).set(currentTimerStr)
-        ]).then(() => {
-            console.log("Firebaseへの保存がすべて成功しました！");
-            // 次回の計測のために、セッション上の基準時間を現在の時間に同期
-            sessionActiveTime = elapsedTime;
-        }).catch((error) => {
-            console.error("Firebaseへの保存中にエラーが発生しました:", error);
-        });
+            });
+        }
+        
+        // 画面の表示を更新
+        document.getElementById('timer-display').innerText = `(${storedTimeStr})`;
+        
+    } catch (error) {
+        console.error("タイマーの読み込みに失敗しました:", error);
+        document.getElementById('timer-display').innerText = `(00:00:00)`;
+    }
+}
+
+// スタートボタン
+function startTimer() {
+    if (timerInterval !== null) return;
+    
+    let displayText = document.getElementById('timer-display').innerText;
+    let timeStr = displayText.replace(/[() ]/g, '');
+    
+    let parts = timeStr.split(':');
+    let currentSeconds = 0;
+    if (parts.length === 3) {
+        let hours = parseInt(parts[0], 10) || 0;
+        let minutes = parseInt(parts[1], 10) || 0;
+        let seconds = parseInt(parts[2], 10) || 0;
+        currentSeconds = (hours * 3600) + (minutes * 60) + seconds;
     }
     
-    function formatTime(ms) {
-        const totalSeconds = Math.floor(ms / 1000);
-        const hours = Math.floor(totalSeconds / 3600);
-        const minutes = Math.floor((totalSeconds % 3600) / 60);
-        const seconds = totalSeconds % 60;
-        return `${String(hours).padStart(2, '0')}:${String(minutes).padStart(2, '0')}:${String(seconds).padStart(2, '0')}`;
+    if (isNaN(currentSeconds)) currentSeconds = 0;
+    
+    timerInterval = setInterval(() => {
+        currentSeconds++;
+        
+        let h = Math.floor(currentSeconds / 3600);
+        let m = Math.floor((currentSeconds % 3600) / 60);
+        let s = currentSeconds % 60;
+        
+        let hStr = String(h).padStart(2, '0');
+        let mStr = String(m).padStart(2, '0');
+        let sStr = String(s).padStart(2, '0');
+        
+        document.getElementById('timer-display').innerText = `(${hStr}:${mStr}:${sStr})`;
+    }, 1000);
+    
+    document.getElementById('start-btn').disabled = true;
+    document.getElementById('stop-btn').disabled = false;
+    document.getElementById('start-btn').innerText = "再開";
+}
+
+// ストップボタン
+async function stopTimer() {
+    if (timerInterval === null) return;
+
+    clearInterval(timerInterval);
+    timerInterval = null;
+
+    document.getElementById('start-btn').disabled = false;
+    document.getElementById('stop-btn').disabled = true;
+
+    const todayStr = new Date().toLocaleDateString('sv-SE');
+    let currentTimerStr = document.getElementById('timer-display').innerText.replace(/[() ]/g, '');
+
+    if (!currentTimerStr || currentTimerStr.includes("NaN") || currentTimerStr.length !== 8) {
+        currentTimerStr = "00:00:00";
     }
 
-    function timeStrToMs(timeStr) {
-        const parts = timeStr.split(':');
-        if (parts.length !== 3) return 0;
-        return ((parseInt(parts[0], 10) || 0) * 3600 + (parseInt(parts[1], 10) || 0) * 60 + (parseInt(parts[2], 10) || 0)) * 1000;
+    console.log("【タイマー停止】logs フォルダへ保存します:", currentTimerStr, "日付:", todayStr);
+
+    try {
+        // 1. logs/today フォルダにリアルタイム同期用データを保存
+        await db.ref(`logs/today`).set({
+            study_time: currentTimerStr,
+            last_date: todayStr
+        });
+        
+        // 2. logs フォルダ直下に日付ごとのデータを保存
+        await db.ref(`logs/${todayStr}`).set(currentTimerStr);
+        
+        console.log("logsへの保存がすべて完了しました！");
+    } catch (error) {
+        console.error("Firebaseへの保存エラー:", error);
     }
+}
     /* ---------------------------------------------------- */
 // メモ機能
 async function loadMemo() {
