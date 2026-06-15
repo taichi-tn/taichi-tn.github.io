@@ -1,0 +1,58 @@
+<?php
+ini_set('display_errors', 1);
+error_reporting(E_ALL);
+// 保存するCSVファイル名
+$csvFile = 'index.csv';
+
+// スキャン対象のディレクトリ（現在のディレクトリ）
+$dir = './';
+
+// CSVに書き込みたくないファイルやディレクトリ
+$exclude = ['.', '..', '.DS_Store', 'index.php'];
+
+function scanFiles($directory, $level = 0, &$results = []) {
+    global $exclude;
+    $files = scandir($directory);
+
+foreach ($files as $file) {
+    // 1. 特定のファイル名を除外（既存の処理）
+    if (in_array($file, $exclude)) continue;
+
+    $path = $directory . $file;
+
+    // 2. 拡張子が「txt」のファイルを除外（追加）
+    // pathinfoで拡張子を取得し、小文字に変換して比較
+    if (!is_dir($path) && (pathinfo($file, PATHINFO_EXTENSION) === 'txt' || pathinfo($file, PATHINFO_EXTENSION) === 'mp3')) {
+        continue;
+    }
+
+        $path = $directory . $file;
+        // 表示用のタイトル（ファイル名から拡張子を除いたものなど）
+        $title = htmlspecialchars($file);
+        // 相対パス
+        $link = ltrim($path, './');
+
+        if (is_dir($path)) {
+            // ディレクトリの場合
+            $results[] = [$level, "📁 " . $title, $link . '/'];
+            scanFiles($path . '/', $level + 1, $results);
+        } else {
+            $results[] = [$level, $title, $link];
+            
+        }
+    }
+    return $results;
+}
+
+// 実行
+$data = scanFiles($dir);
+
+// CSVファイルとして保存
+$fp = fopen($csvFile, 'w');
+foreach ($data as $line) {
+    fwrite($fp, implode(',', $line) . "\n");
+}
+fclose($fp);
+
+echo "index.csv の生成が完了しました！";
+?>
