@@ -255,7 +255,7 @@ dataList.forEach(item => {
 });
 
 async function updateSidebarStars() {
-    const snapshot = await db.ref(`${SUBJECT_PREFIX}/20260720`).once('value');
+    const snapshot = await db.ref(`${SUBJECT_PREFIX}/20260731`).once('value');
     const allData = snapshot.val() || {};
     const items = document.querySelectorAll('.menu-item');
     items.forEach((div, index) => {
@@ -282,7 +282,7 @@ async function loadJoubun(item) {
         const text = await response.text();
         originalHtmlBackup = parseTextToHTML(text);
 
-        const snapshot = await db.ref(`${SUBJECT_PREFIX}/20260720/${currentFileId}`).once('value');
+        const snapshot = await db.ref(`${SUBJECT_PREFIX}/20260731/${currentFileId}`).once('value');
         const savedData = snapshot.val();
 
         if (savedData) {
@@ -382,7 +382,7 @@ function saveCurrentData() {
     const timeStr = `${now.getMonth()+1}/${now.getDate()} ${now.getHours()}:${String(now.getMinutes()).padStart(2, '0')}`;
     const html = document.getElementById('display-area').innerHTML;
     const needsReview = document.getElementById('review-checkbox').checked;
-    db.ref(`${SUBJECT_PREFIX}/20260720/${currentFileId}`).set({
+    db.ref(`${SUBJECT_PREFIX}/20260731/${currentFileId}`).set({
         html: html, timestamp: timeStr, needsReview: needsReview
     }).then(() => {
         document.getElementById('update-time').innerText = "保存: " + timeStr;
@@ -394,7 +394,7 @@ function toggleReviewFlag() { saveCurrentData(); }
 function resetCurrentSheet() {
     if (!currentFileId || !confirm("リセットしますか？")) return;
     renderHTML(originalHtmlBackup);
-    db.ref(`${SUBJECT_PREFIX}/20260720/${currentFileId}`).remove();
+    db.ref(`${SUBJECT_PREFIX}/20260731/${currentFileId}`).remove();
 }
 
     /* --- 改修：トップ階層の logs フォルダで一括管理 --- */
