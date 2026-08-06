@@ -103,9 +103,9 @@
 <div id="sidebar">
     <div style="display: flex; align-items: center; justify-content: space-between; background: #eee; padding-right: 10px;">
         <div class="sidebar-title-area">
-            法人税法<span id="timer-display">(読込中)</span>
+            相続税法<span id="timer-display">(読込中)</span>
         </div>
-        <a href="../shohi/index.html" style="font-size: 0.7rem; color: var(--primary-blue); text-decoration: none; border: 1px solid; padding: 2px 5px; border-radius: 3px; background: #fff;">消費税へ</a>
+        <a href="text/index.html" style="font-size: 0.7rem; color: var(--primary-blue); text-decoration: none; border: 1px solid; padding: 2px 5px; border-radius: 3px; background: #fff;">条文へ</a>
     </div>
     
     <div id="menu-container"></div>
@@ -174,8 +174,8 @@ const dataList = [
 let currentFileId = "";
 let originalHtmlBackup = "";
 let memoSaveTimer;
-const SUBJECT_PREFIX = 'hojin';
-let currentDate = "20260731"; // 選択中の日付
+const SUBJECT_PREFIX = 'sozoku';
+let currentDate = ""; // 選択中の日付
 
 // タイマー用変数
 let timerInterval = null;
