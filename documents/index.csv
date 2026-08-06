@@ -20,6 +20,11 @@
 2,📁 text,tax/shohi/text/
 3,index.csv,tax/shohi/text/index.csv
 3,index.html,tax/shohi/text/index.html
+1,📁 sozoku,tax/sozoku/
+2,index.html,tax/sozoku/index.html
+2,📁 text,tax/sozoku/text/
+3,index.csv,tax/sozoku/text/index.csv
+3,index.html,tax/sozoku/text/index.html
 0,📁 try,try/
 1,📁 gounamba,try/gounamba/
 2,IMG_0400.jpeg,try/gounamba/IMG_0400.jpeg
@@ -30,7 +35,6 @@
 3,2026.02.07.19.04.html,try/kikootsuka/gemini/2026.02.07.19.04.html
 3,2026.02.21.20.10.html,try/kikootsuka/gemini/2026.02.21.20.10.html
 3,2026.02.27.12.36.html,try/kikootsuka/gemini/2026.02.27.12.36.html
-1,📁 kinomazaki,try/kinomazaki/
 1,📁 riotakeda,try/riotakeda/
 2,📁 chat,try/riotakeda/chat/
 3,IMG_1799.jpeg,try/riotakeda/chat/IMG_1799.jpeg
@@ -218,7 +222,7 @@
 6,IMG_0092.jpeg,try/yutasakai/dailytry/2025/01/31/IMG_0092.jpeg
 6,📁 files,try/yutasakai/dailytry/2025/01/31/files/
 7,TestFormDate-b4b04b32.css,try/yutasakai/dailytry/2025/01/31/files/TestFormDate-b4b04b32.css
-7,index-e84c4985.js.ダウンロード,try/yutasakai/dailytry/2025/01/31/files/index-e84c4985.js.ダウンロード
+7,index-e84c4985.js.ダウンロード,try/yutasakai/dailytry/2025/01/31/files/index-e84c4985.js.ダウンロード
 7,logo_dailytry-93226e52.svg,try/yutasakai/dailytry/2025/01/31/files/logo_dailytry-93226e52.svg
 7,page-975c3a47.css,try/yutasakai/dailytry/2025/01/31/files/page-975c3a47.css
 7,thumbnail_IMG_0092.jpeg,try/yutasakai/dailytry/2025/01/31/files/thumbnail_IMG_0092.jpeg
