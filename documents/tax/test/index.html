@@ -19,7 +19,7 @@
         
         #sidebar {
             width: var(--sidebar-width); background: #fff; border-right: 1px solid #dcdfe6;
-            display: flex; flex-direction: column; height: 100vh;
+            display: flex; flex-direction: column; height: 100vh; flex-shrink: 0;
         }
         
         .sidebar-title-area {
@@ -45,15 +45,28 @@
         .menu-item:hover { background: #f9f9f9; }
         .menu-item.active { background: #eef2f7; color: #000; font-weight: bold; border-left: 4px solid var(--primary-blue); }
 
-        #main-content { flex: 1; display: flex; flex-direction: column; overflow: hidden; background: #fff; }
+        #main-content { flex: 1; display: flex; flex-direction: column; overflow: hidden; background: #fff; min-width: 0; }
         #header {
-            padding: 10px 30px; border-bottom: 1px solid #eee; display: flex;
+            padding: 10px 20px; border-bottom: 1px solid #eee; display: flex;
             justify-content: space-between; align-items: center; background: #fafafa;
+            gap: 10px;
+        }
+        
+        /* タイトルの省略表示スタイル */
+        #current-title {
+            margin: 0;
+            font-size: 1.1rem;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            flex: 1;
+            min-width: 0;
         }
         
         .review-check-container {
             display: flex; align-items: center; gap: 5px; font-size: 0.9rem; cursor: pointer;
             background: #fffbe6; padding: 2px 8px; border: 1px solid #ffe58f; border-radius: 4px;
+            white-space: nowrap;
         }
 
         #display-area {
@@ -74,7 +87,7 @@
         .remove-btn { position: absolute; top: -10px; background: #f00; color: #fff; font-size: 9px; padding: 0 3px; border-radius: 3px; display: none; }
         .mask:hover .remove-btn { display: inline-block; }
 
-        button, select { font-size: 0.85rem; padding: 5px 10px; cursor: pointer; }
+        button, select { font-size: 0.85rem; padding: 5px 10px; cursor: pointer; white-space: nowrap; }
         .btn-primary { background: var(--primary-blue); color: #fff; border: none; border-radius: 5px;}
         .btn-danger { background: #fff; color: #d44; border: 1px solid #d44; border-radius: 5px;}
         .btn-success { background: #2ecc71; color: #fff; border: none; border-radius: 5px;}
@@ -110,25 +123,22 @@
 
 <div id="main-content">
     <div id="header">
-        <h1 id="current-title" style="margin:0; font-size:1.1rem;">条文を選択</h1>
+        <h1 id="current-title">条文を選択</h1>
         
-        <!-- 日付選択プルダウンと新規作成ボタン -->
-        <div style="display: flex; align-items: center; gap: 8px;">
-            <label for="date-select" style="font-size:0.85rem; font-weight:bold;">日付:</label>
+        <!-- 日付選択プルダウンと新規作成ボタン（ラベル削除） -->
+        <div style="display: flex; align-items: center; gap: 5px; flex-shrink: 0;">
             <select id="date-select" onchange="onDateChanged()"></select>
             <button class="btn-primary" onclick="createNewTodayDate()">今日を作成</button>
         </div>
 
-        <div style="display: flex; align-items: center; gap: 15px;">
-            <div style="display: flex; gap: 5px;">
-                <button id="start-btn" class="btn-primary" onclick="startTimer()">開始</button>
-                <button id="stop-btn" class="btn-success" onclick="stopTimer()" disabled>停止</button>
-            </div>
+        <div style="display: flex; align-items: center; gap: 10px; flex-shrink: 0;">
+            <!-- 統合されたタイマートグルボタン -->
+            <button id="timer-toggle-btn" class="btn-primary" onclick="toggleTimer()">開始</button>
 
             <label class="review-check-container">
                 <input type="checkbox" id="review-checkbox" onchange="toggleReviewFlag()"> 復習
             </label>
-            <span id="update-time" style="font-size:0.75rem; color:#909399;"></span>
+            <span id="update-time" style="font-size:0.75rem; color:#909399; white-space:nowrap;"></span>
             <button class="btn-primary" onclick="saveCurrentData()">保存</button>
         </div>
     </div>
@@ -194,10 +204,8 @@ async function loadDateList() {
     const snapshot = await db.ref(`${SUBJECT_PREFIX}`).once('value');
     const allSubjectData = snapshot.val() || {};
     
-    // 日付形式（8桁数字）のキーを抽出して降順（新しい順）に並べ替え
     let dates = Object.keys(allSubjectData).filter(key => /^\d{8}$/.test(key));
     
-    // デフォルト日付（20260731）がない場合も選択肢に加える
     if (!dates.includes("20260731")) {
         dates.push("20260731");
     }
@@ -214,7 +222,6 @@ async function loadDateList() {
         dateSelect.appendChild(option);
     });
     
-    // 選択状態を設定
     if (dates.includes(currentDate)) {
         dateSelect.value = currentDate;
     } else {
@@ -238,7 +245,7 @@ async function createNewTodayDate() {
     const today = getFormattedToday();
     currentDate = today;
     
-    await loadDateList(); // 一覧更新
+    await loadDateList();
     document.getElementById('date-select').value = today;
     
     onDateChanged();
@@ -377,7 +384,7 @@ function saveCurrentData() {
     }).then(() => {
         document.getElementById('update-time').innerText = "保存: " + timeStr;
         updateSidebarStars();
-        loadDateList(); // 新規日付データ保存時にも一覧更新
+        loadDateList();
     });
 }
 
@@ -388,7 +395,15 @@ function resetCurrentSheet() {
     db.ref(`${SUBJECT_PREFIX}/${currentDate}/${currentFileId}`).remove();
 }
 
-/* --- タイマー機能 --- */
+/* --- タイマー機能（1ボタン切り替え） --- */
+function toggleTimer() {
+    if (timerInterval === null) {
+        startTimer();
+    } else {
+        stopTimer();
+    }
+}
+
 async function loadSavedTimer() {
     try {
         const todayStr = new Date().toLocaleDateString('sv-SE');
@@ -446,9 +461,10 @@ function startTimer() {
         document.getElementById('timer-display').innerText = `(${hStr}:${mStr}:${sStr})`;
     }, 1000);
     
-    document.getElementById('start-btn').disabled = true;
-    document.getElementById('stop-btn').disabled = false;
-    document.getElementById('start-btn').innerText = "再開";
+    // ボタンの表示変更（停止モードへ）
+    const btn = document.getElementById('timer-toggle-btn');
+    btn.innerText = "停止";
+    btn.className = "btn-success";
 }
 
 async function stopTimer() {
@@ -457,8 +473,10 @@ async function stopTimer() {
     clearInterval(timerInterval);
     timerInterval = null;
 
-    document.getElementById('start-btn').disabled = false;
-    document.getElementById('stop-btn').disabled = true;
+    // ボタンの表示変更（開始モードへ）
+    const btn = document.getElementById('timer-toggle-btn');
+    btn.innerText = "開始";
+    btn.className = "btn-primary";
 
     const todayStr = new Date().toLocaleDateString('sv-SE');
     let currentTimerStr = document.getElementById('timer-display').innerText.replace(/[() ]/g, '');
