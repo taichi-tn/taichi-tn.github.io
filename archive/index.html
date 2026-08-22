@@ -1,0 +1,91 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <title>index.html</title>
+    <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@24,400,1,0" />
+    <style>
+        /* フォルダアイコンを黄色くする設定 */
+        a,a:hover,a:visited{
+            color: #0000EE;
+        }
+        .folder-icon {
+            color: #FFCA28; /* Windowsっぽい黄色 */
+            vertical-align: middle;
+            margin-right: 5px;
+            font-size: 1.2em;
+        }
+    </style>
+</head>
+<body>
+    <div id="sitemap-container"></div>
+
+    <script>
+        async function buildSitemap() {
+            try {
+                const response = await fetch('index.csv?v=' + new Date().getTime());
+                if (!response.ok) throw new Error('CSVが見つかりません');
+                const csvText = await response.text();
+                
+                // CSVを一行ずつ分解（空行除外）
+                const lines = csvText.trim().split(/\r?\n/).filter(line => line.trim() !== "");
+                const container = document.getElementById('sitemap-container');
+                
+                // 階層管理用のスタック（初期状態はコンテナ）
+                // stack[n] は level n のアイテムを入れるための <ul> を指す
+                let stack = [];
+
+                lines.forEach(line => {
+                    const [levelStr, title, url] = line.split(',').map(s => s.trim());
+                    const level = parseInt(levelStr);
+
+                    // 1. 新しいリスト項目(li)を作成
+                    const li = document.createElement('li');
+                    const a = document.createElement('a');
+                    a.href = url || "#";
+                    a.textContent = title;
+                    if (title.includes('📁')) {
+                        // 📁 が含まれていたら、アイコン用のHTMLに置き換える
+                        const cleanTitle = title.replace('📁', '').trim(); // 絵文字を消して文字だけにする
+                        a.innerHTML = `<span class="material-symbols-outlined folder-icon">folder</span>${cleanTitle}`;
+                    } else {
+                        // 📁 がなければ、普通のファイルアイコン（任意）かテキストのみ
+                        a.innerHTML = `<span class="material-symbols-outlined" style="font-size:1.2em; vertical-align:middle; margin-right:5px; color:#999;">description</span>${title}`;
+                    }
+                    li.appendChild(a);
+
+                    // 2. 適切な親 <ul> を見つける or 作る
+                    if (level === 0) {
+                        // ルート（階層0）の場合
+                        if (!stack[0]) {
+                            stack[0] = document.createElement('ul');
+                            container.appendChild(stack[0]);
+                        }
+                        stack[0].appendChild(li);
+                        stack = [stack[0]]; // 階層0より下をリセット
+                    } else {
+                        // 子階層の場合
+                        // 親（一つ上の階層）の最後の li を探す
+                        let parentLi = stack[level - 1].lastElementChild;
+                        
+                        // その li の中に <ul> がなければ作る
+                        let targetUl = parentLi.querySelector('ul');
+                        if (!targetUl) {
+                            targetUl = document.createElement('ul');
+                            parentLi.appendChild(targetUl);
+                        }
+                        
+                        targetUl.appendChild(li);
+                        stack[level] = targetUl; // 今作った <ul> を現在のレベルとして登録
+                    }
+                });
+
+            } catch (error) {
+                console.error('Error:', error);
+            }
+        }
+
+        buildSitemap();
+    </script>
+</body>
+</html>
