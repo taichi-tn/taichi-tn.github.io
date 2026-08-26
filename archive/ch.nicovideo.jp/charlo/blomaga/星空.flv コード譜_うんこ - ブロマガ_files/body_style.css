@@ -1,0 +1,136 @@
+@charset "utf-8";
+
+/******* front,fronttoolで使用 ********/
+
+.main_blog_txt {
+    color: #000;
+    font-family: 'メイリオ', Meiryo, 'ＭＳ Ｐゴシック', 'ヒラギノ角ゴ Pro W3', 'Hiragino Kaku Gothic Pro', sans-serif !important;/* stylelint-disable-line */
+    font-size: 16px;
+    line-height: 1.6;
+    white-space: normal;
+    width: 680px;
+    word-break: normal;
+    word-wrap: break-word;
+}
+
+.main_blog_txt a {
+    color: #000;
+    text-decoration: underline !important;/* stylelint-disable-line */
+}
+
+.main_blog_txt img {
+    margin: 0;
+    max-width: 680px;
+    padding: 0;
+}
+
+.main_blog_txt img.attached_image {
+    /* 画像APIで表示される画像 jsによりクリック可能になる */
+    cursor: pointer;
+}
+
+.main_blog_txt h1,
+.main_blog_txt h2,
+.main_blog_txt h3,
+.main_blog_txt h4,
+.main_blog_txt h5,
+.main_blog_txt h6 {
+    font-weight: normal;
+    margin: 1em 0 .5em;
+}
+
+.main_blog_txt h1 {
+    font-size: 34px;
+}
+
+.main_blog_txt h2 {
+    font-size: 28px;
+}
+
+.main_blog_txt h3 {
+    font-size: 24px;
+}
+
+.main_blog_txt h4 {
+    font-size: 20px;
+    font-weight: bold;
+}
+
+.main_blog_txt h5 {
+    font-size: 18px;
+    font-weight: bold;
+}
+
+.main_blog_txt h6 {
+    font-size: 16px;
+    font-weight: bold;
+}
+
+.main_blog_txt p {
+    margin: 1em 0;
+    padding: 0;
+}
+
+.main_blog_txt em {
+    font-style: italic; /** メイリオもイタリックない **/
+}
+
+.main_blog_txt ul {
+    list-style-type: disc;
+}
+
+.main_blog_txt ul,
+.main_blog_txt ol {
+    margin: 1em 0;
+    padding: 0;
+}
+
+.main_blog_txt ul li,
+.main_blog_txt ol li {
+    list-style-position: inside;
+    padding-left: 1em;
+}
+
+.main_blog_txt blockquote {
+    background-color: #f2f2f2;
+    border: 1px solid #ccc;
+    margin: 20px;
+    padding: 20px;
+}
+
+.main_blog_txt .asciiart {
+    display: block;
+    font-size: 12pt;
+    line-height: normal;
+    padding: 10px;
+    text-align: left;
+}
+
+.main_blog_txt .asciiart * {/* stylelint-disable-line */
+    background: none !important;/* stylelint-disable-line */
+    border: none !important;/* stylelint-disable-line */
+    font-size: inherit !important;/* stylelint-disable-line */
+    line-height: inherit !important;/* stylelint-disable-line */
+}
+
+.main_blog_txt .asciiart, .main_blog_txt .asciiart * {/* stylelint-disable-line */
+    font-family: 'ＭＳ Ｐゴシック', 'MS PGothic', 'Mona', 'mona-gothic-jisx0208.1990-0', 'IPA モナー Pゴシック', 'IPAMonaPGothic', sans-serif !important;/* stylelint-disable-line */
+}
+
+.main_blog_txt .asciiart.small {
+    font-size: 9pt;
+}
+
+/* 編集画面での表示スタイル */
+#tinymce.main_blog_txt .asciiart {/* stylelint-disable-line */
+    background: url('../../../img/tool/blomaga/asciiart_area.png') no-repeat;
+    border: dotted 4px #ddd;
+    border-radius: 5px;
+    min-height: 1em;
+    padding: 30px 5px 10px;
+}
+
+#tinymce.main_blog_txt .asciiart.small {/* stylelint-disable-line */
+    border-width: 2px;
+    padding: 30px 8px 10px;
+}

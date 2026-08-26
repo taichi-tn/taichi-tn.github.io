@@ -1,0 +1,79 @@
+;(function($) {
+//チャンネルタグの開閉
+var minHeight  = 16,
+    scrlMargin = 4.5,
+    scrlHeight,
+    tagsContainer,
+    classNames = {hidden: 'hidden', expand: 'expand'},
+    selectors  = {tags: '#chhd_b_tag', more: '.more', buttons: 'a'};
+
+var fn = {
+    init: function() {
+        tagsContainer = $(selectors.tags);
+        if(!tagsContainer[0]){return false;};//tagsContainerが無ければ終わる
+        scrlHeight = tagsContainer[0].scrollHeight
+        if (scrlHeight - tagsContainer[0].clientHeight - scrlMargin <= 0) return;
+
+        tagsContainer
+            .siblings(selectors.more).removeClass(classNames.hidden)
+                .find(selectors.buttons).bind('click', fn.toggle);
+    },
+    toggle: function(e) {
+        e.preventDefault();
+        var el = $(this), f = el.hasClass(classNames.expand);
+        el.hide().siblings().css('display', 'block');
+        tagsContainer.stop().animate({height: f ? scrlHeight : minHeight},50);
+    }
+};
+
+$(fn.init);
+
+})(jQuery);
+
+
+jQuery(function($){
+    //DOM readyを待つ
+
+    debug=0;
+
+    //二重課金防止
+    var ppvSubmit = {
+        fire: function(event){//とにかくボタンを押したとき発火
+            var	caller = $(event.target);
+            var btnAll = $("form.purchaseForm input.ppvSubmit");
+            debug&&console.log(btnAll);
+            btnAll.hide();
+            caller.parent().addClass('loading');
+            return true;
+        }
+    }
+    if($(".purchase_method").size()>=1){
+        debug&&console.log($(".purchase_method").size());
+        var btnPpvSubmit = $("form.purchaseForm input.ppvSubmit");
+        btnPpvSubmit.click(ppvSubmit.fire);
+    }
+
+    //CPペナルティバーの解除日表示の切り替え
+    var $pena_bar = $("header.site .head_msg.penalty");
+    if($pena_bar.size()!=0){
+        var $pena_trigger     = $pena_bar.find(".until");
+        var $pena_unlock_date = $pena_bar.find(".unlock_date");
+        $pena_trigger.on("click",function(){
+            $pena_unlock_date.fadeToggle();
+        });
+    }
+
+
+});
+
+
+//SNS共有メニュー開閉：ヘッダHTMLとfollow.jsから呼ばれます
+var toggleShareMenu = function(expand){
+    if(expand){
+        panel.slideDown(50);
+        trigger.addClass("expanded");
+    }else{
+        panel.slideUp(50);
+        trigger.removeClass("expanded");
+    }
+}

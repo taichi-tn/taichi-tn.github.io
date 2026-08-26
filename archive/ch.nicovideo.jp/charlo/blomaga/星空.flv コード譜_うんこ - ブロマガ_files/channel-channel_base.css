@@ -1,0 +1,61 @@
+section.content_body{background-color:red}
+section.content_body p.time{color:#888;margin-top:5px}
+section.content_body p.time var{font-style:normal}
+section.content_body .purchased{background:#be1;border:solid 1px #9c2;color:#270 !important;font-weight:bold;padding:2px 6px;text-shadow:0 1px 1px #fff;display:inline-block;vertical-align:middle}
+section.content_body a.action_button{background:#06f url('../../img/common/grad/uw_h24a50.png') repeat-x 0 0;border:solid 1px #fff;border-color:#09f #09f #06a;border-radius:2px;box-shadow:0 1px 4px rgba(0,0,0,0.2);color:#fff !important;font-size:12px;font-weight:bold;min-width:70px;padding:5px 10px !important;text-align:center;text-decoration:none;text-shadow:0 0 10px #64c8ff;display:inline-block;vertical-align:baseline}
+section.content_body a.action_button:hover{background-color:#09f}
+section.content_body a.action_button.main{display:block;font-size:20px;padding:10px !important}
+section.content_body a.action_button.trial{background-color:#eee;border-color:#aaa;color:#333 !important;text-shadow:0 1px 0 #fff}
+section.content_body a.action_button.trial:hover{background-color:#f8f8f8}
+section.contents_detail{width:614px}
+section.contents_detail .keimou{margin:10px 0}
+section.contents_detail .detail_left{float:left;padding:0 10px 10px 0}
+section.contents_detail .detail_left img.thumbnail{background:#fff;border:solid 1px #888;padding:1px}
+section.contents_detail .detail_right{padding:0 0 10px}
+section.contents_detail .detail_right ul,section.contents_detail .detail_right li{list-style:none;margin:0;padding:0}
+section.contents_detail .detail_right .title{font-size:18px;margin:0 0 10px}
+section.contents_detail .detail_right .properties{color:#888;font-size:12px}
+section.contents_detail .detail_right .properties li{margin-bottom:4px;display:inline-block;vertical-align:middle}
+section.contents_detail .detail_right .properties li var{background:#eee;border-radius:4px;color:#666;padding:4px;vertical-align:middle;white-space:nowrap;display:inline-block;vertical-align:middle}
+section.contents_detail .detail_right .reactions{padding:10px 0 10px 0}
+section.contents_detail .detail_right .reactions ul{padding:4px 0 0}
+section.contents_detail .detail_right .reactions ul.counts{display:inline-block;vertical-align:baseline}
+section.contents_detail .detail_right .reactions li{border-bottom:solid 1px #f0f0f0;padding:4px 0}
+section.contents_detail .detail_right .reactions li h6{color:#888;font-weight:normal;width:70px;display:inline-block;vertical-align:middle}
+section.contents_detail .detail_right .reactions li var{font-style:normal;text-align:right;width:80px;display:inline-block;vertical-align:middle}
+section.contents_detail .detail_right .reactions li var a{text-decoration:underline}
+section.contents_detail .detail_right .reactions li:last-child{border:0}
+section.contents_detail .detail_right .reactions .last_res_body_wrap{background:transparent url('../../img/common/res_bullet.gif') no-repeat left center;margin:10px 0;padding-left:46px}
+section.contents_detail .detail_right .reactions .last_res_body_wrap .last_res_body{background-color:#a3a3a3;color:#fff;font-weight:bold;padding:4px}
+section.contents_detail .detail_right .actions{padding:10px 0 10px 0}
+section.contents_detail .detail_right .actions a{display:block;padding:10px;text-decoration:none}
+section.contents_detail .detail_right .tags{border-bottom:solid 1px #f0f0f0;clear:left;padding-bottom:6px}
+section.contents_detail .detail_right .tags h3{color:#aaa;font-size:12px;padding-bottom:4px}
+section.contents_detail .detail_right .tags li{padding:0 4px 6px 0;display:inline-block;vertical-align:middle}
+section.contents_detail .detail_right .tags a.nicopedia{color:#ddd !important;text-decoration:underline !important;white-space:nowrap;display:inline-block;vertical-align:middle}
+section.contents_detail .detail_right .tags a.nicopedia:hover{color:#08f !important}
+section.contents_detail .detail_right .tags a.nicopedia span{color:#000 !important;text-decoration:none !important}
+section.contents_detail .detail_right .tags a.nicopedia_tag{font-size:10px;margin-left:1px;padding:0 2px}
+section.contents_detail .detail_right .tags a.nicopedia_tag.written{background-color:#c33;color:#fff !important}
+section.contents_detail .detail_right .tags a.nicopedia_tag.nonexist{background-color:#eee;color:#888 !important;text-decoration:none !important}
+section.contents_detail .detail_right .description{clear:left;font-size:14px;line-height:2;padding:10px 10px 10px 0;word-break:break-all}
+section.contents_detail.book .detail_right .reactions{padding-left:202px}
+section.contents_detail.book .detail_right .actions{padding-left:202px}
+section.contents_detail.video .detail_right .reactions{padding-left:160px}
+section.contents_detail.video .detail_right .actions{padding-left:160px}
+.adult_caution{background:#666 url('../../img/channel/adult_caution.png') no-repeat 4px center;border-radius:4px;color:#fff;margin:0 0 10px;padding:5px;padding-left:50px}
+.adult_caution strong{color:pink}
+.announce{position:relative;background:#f1f1f1;border:1px #ccc dashed;padding:10px}
+.announce .close{position:absolute;right:10px;top:10px;z-index:10}
+.announce .badge{padding:2px;display:inline-block;vertical-align:middle}
+.announce .badge.android{padding:0}
+.announce .message{display:inline-block;vertical-align:middle}
+.announce h1{font-size:18px}
+.announce p{font-size:14px}
+.sidebar{float:right}
+.sidebar .purchase_method{float:none}
+.sidebar .announce{margin:10px -10px 0 0;width:347px}
+.forbidden_devices{display:block;line-height:1.4;margin:10px 0;padding:0 10px}
+.forbidden_devices .device{background:#800;color:#fff;line-height:1.2;padding:0 5px;white-space:nowrap;display:inline-block;vertical-align:baseline}
+li.item .forbidden_devices{font-size:10px;margin:5px 0;padding:0}
+li.item .forbidden_devices .device{background:#f0f0f0;color:#666;margin:0 2px;padding:2px}

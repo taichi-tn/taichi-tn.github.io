@@ -1,0 +1,534 @@
+/* jump MENU @ channel_list ppv_pack ppv_video search search_video video special/hoge/search */
+function jumpMENU(targ,selObj,restore){ //v3.0
+    eval(targ+".location='"+selObj.options[selObj.selectedIndex].value+"'");
+    if (restore) selObj.selectedIndex=0;
+}
+
+/* 検索ボックス @ head_global */
+function submitSearch(type , mode , pram) {
+    let f = jQuery('#head_search_form'),
+        searchString = f.find("input[name=s]") == null ? "" : f.find("input[name=s]"),
+        trim = jQuery.trim(searchString.val()),
+        s = trim.replace(/%20/g, '+'),
+    target = '/search/';
+    if( mode == "" || mode == null ) { mode = 's'; }
+    if( !(s == "" || s == " " || s == "　") ) {
+        location.href = target + encodeURIComponent(s) + "?type=" + type + "&mode=" +  mode + pram;
+    }
+}
+
+//cookie
+cookie = function(name, value, options) {
+    if (typeof value != 'undefined') { // name and value given, set cookie
+        options = options || {};
+        if (value === null) {
+            value = '';
+            options.expires = -1;
+        }
+        var expires = '';
+        if (options.expires && (typeof options.expires == 'number' || options.expires.toUTCString)) {
+            var date;
+            if (typeof options.expires == 'number') {
+                date = new Date();
+                date.setTime(date.getTime() + (options.expires * 24 * 60 * 60 * 1000));
+            } else {
+                date = options.expires;
+            }
+            expires = '; expires=' + date.toUTCString(); // use expires attribute, max-age is not supported by IE
+        }
+        // CAUTION: Needed to parenthesize options.path and options.domain
+        // in the following expressions, otherwise they evaluate to undefined
+        // in the packed version for some reason...
+        var path = options.path ? '; path=' + (options.path) : '';
+        var domain = options.domain ? '; domain=' + (options.domain) : '';
+        var secure = options.secure ? '; secure' : '';
+        document.cookie = [name, '=', encodeURIComponent(value), expires, path, domain, secure].join('');
+    } else { // only name given, get cookie
+        var cookieValue = null;
+        if (document.cookie && document.cookie != '') {
+            var cookies = document.cookie.split(';');
+            for (var i = 0; i < cookies.length; i++) {
+                //var cookie = jQuery.trim(cookies[i]);
+                var cookie = (cookies[i] || "").replace( /^\s+|\s+$/g, "" );
+                // Does this cookie string begin with the name we want?
+                if (cookie.substring(0, name.length + 1) == (name + '=')) {
+                    cookieValue = decodeURIComponent(cookie.substring(name.length + 1));
+                    break;
+                }
+            }
+        }
+        return cookieValue;
+    }
+};
+
+//phpのmb_strwidthを実装
+function mb_strwidth(s) {
+    //return (s.match(/[\u0020-\u1FFF\uFF61-\uFF9F]/g) || []).length + (s.match(/[\u2000-\uFF60\uFFA0-\uFFFF]/g) || []).length*2;
+    //↑phpドキュメントによるとこれが正解だが ↓phpソースは以下の実装になっている
+    var orig = s;
+    s = s.replace(/[\u1100-\u1159\u115f-\u115f\u2329-\u232a\u2e80-\u2e99\u2e9b-\u2ef3\u2f00-\u2fd5\u2ff0-\u2ffb\u3000-\u303e\u3041-\u3096\u3099-\u30ff\u3105-\u312c\u3131-\u318e\u3190-\u31b7\u31f0-\u321e\u3220-\u3243\u3250-\u327d\u327f-\u32fe\u3300-\u4db5\u4e00-\u9fa5\ua000-\ua48c\ua490-\ua4c6\uac00-\ud7a3\uf900-\ufa2d\ufa30-\ufa6a\ufe30-\ufe52\ufe54-\ufe66\ufe68-\ufe6b\uff01-\uff60\uffe0-\uffe6]/g, "");
+    return (orig.length - s.length) * 2 + s.length;
+}
+
+if(typeof Ch=="undefined")Ch={};//Chが無ければ作る
+
+Ch.debug  = 0;//デバッグ状態切替
+
+//スムーズに目的地までスクロールする
+Ch.smoothScroll = function(selector,options){
+
+    //optionのデフォルト値
+    var default_option = {
+        "duration":500,
+        "offset":0
+    };
+
+    if (typeof options=="undefined"){var options = {}};
+    var duration = options.duration || default_option.duration;
+    var offset = options.offset || default_option.offset;
+
+    //ページ内スクロールをスムーズに行う
+    var target = jQuery(selector);
+    if (target.length) {
+        var targetOffset = target.offset().top + offset;
+        jQuery('html,body').animate({scrollTop: targetOffset}, duration);
+        return true;
+    }
+    else{return false;}
+};
+
+//リンクのアンダーラインを別所区で表示させるためにspanでwrapする
+Ch.decorateLink = function(){
+    jQuery("a.em").each(function(i,e){
+        e=jQuery(e);
+        span=jQuery("<span class='em_text'></span>");
+        e.html(span.html(e.text()));
+    });
+};
+
+Ch.Util = {
+    toggleOverlapElement : function(f) {
+        jQuery("object, embed").css({visibility: f? "visible":"hidden"}); //flashを表示/非表示
+    }
+};
+
+Ch.LazyImage = {
+    //selectorで指定した要素内のimgのlazyimageを解除する
+    forceLoad : function(selector){
+        jQuery(selector + " img[data-original]").each(function(i,e){
+            var e = jQuery(e);
+            e.attr("src",e.attr("data-original"))
+             .removeAttr("data-original");
+        });
+    }
+}
+
+;(function($){
+
+Ch.loginbox = {
+
+    //セレクタ
+    sl :{
+        trigger : ".loginbox",
+        balloon : "#loginbox_balloon", //balloonは1ページに1つだけ、使いまわす
+        mask    : "#loginbox_mask" //1つだけ、使いまわす
+    },
+
+    e : {},
+
+    init : function(){
+        var t = this;
+
+        //cache elements
+        t.e.$triggers = $(t.sl.trigger);
+        t.e.$balloon  = $(t.sl.balloon);
+        t.e.$mask     = $(t.sl.mask);
+
+        //set default DOM
+        t.updateDOM(MSG_loginbox);
+
+        t.e.$triggers.on("click",function(event){
+            event.stopPropagation();
+            t.toggle(this);
+        });
+    },
+    toggle : function(button){
+
+        var t = this;
+
+        var $button   = $(button);
+        var w     = $button.outerWidth();
+        var my_status = $button.attr("data-loginbox");
+
+        if(t.e.$balloon.is(":visible")){
+            //balloonが表示されている
+            if(my_status=="expanded"){
+                //console.log("開いてるけどこれは自分のballoonだ、閉じる")
+                t.hideBalloon($button);
+            }else{
+                //console.log("誰かのballoonが開いている、自分用として開き直す");
+                t.showBalloon($button);
+            }
+        }else{
+            //console.log("balloonが表示されていない、表示する");
+            t.showBalloon($button);
+        }
+    },
+
+    showBalloon : function($button){
+        var t = this;
+
+        t.e.$triggers.removeAttr("data-loginbox");//全トリガからstatus削除
+        $button.attr("data-loginbox","expanded");
+
+        t.updateDOM({
+            title     : $button.attr("data-title"),
+            login : {
+                label : $button.attr("data-login_label"),
+                url   : $button.attr("data-login_url"),
+                description : $button.attr("data-login_description")
+            },
+            register : {
+                label : $button.attr("data-register_label"),
+                url   : $button.attr("data-register_url"),
+                description : $button.attr("data-register_description")
+            }
+        });
+
+        t.updatePosition($button);//balloonの位置調整
+        t.e.$mask.show();
+        t.e.$balloon.fadeIn("fast");
+
+        $("body").on("click.hideBaloon_temp",function(event){
+            if($(event.target).closest(t.e.$balloon).size()<=0){
+                event.stopPropagation();
+                t.hideBalloon();
+                $("body").off("click.hideBaloon_temp");
+            }
+        });
+
+    },
+
+    hideBalloon : function(){
+        var t = this;
+
+        t.e.$triggers.removeAttr("data-loginbox");//全トリガからstatus削除
+
+        t.e.$balloon.hide();
+        t.e.$mask.fadeOut();
+    },
+
+    //バルーン内のテキスト、リンク先URLなどを更新する
+    updateDOM : function(source){
+
+        var t  = this;
+        var $b = t.e.$balloon;
+
+        if(typeof source=="object"){
+            if(source.title){               $b.find("h1").text(source.title)}
+            if(source.login.label){         $b.find(".login a").html(source.login.label)}
+            if(source.login.url){           $b.find(".login a").attr("href",source.login.url)}
+            if(source.login.description){   $b.find(".login dd").html(source.login.description)}
+            if(source.register.label){      $b.find(".register a").html(source.register.label)}
+            if(source.register.url){        $b.find(".register a").attr("href",source.register.url)}
+            if(source.register.description){$b.find(".register dd").html(source.register.description)}
+        }else{
+            return false;
+        }
+    },
+
+    //バルーンの表示位置を更新
+    updatePosition : function($button){
+        var t       = this;
+
+        var btn     = [];
+        btn.offset  = $button.offset();
+        btn.width   = $button.outerWidth();
+        btn.height  = $button.outerHeight();
+
+        var bal     = [];
+        bal.padding = parseInt(t.e.$balloon.css("padding-top"));
+        bal.width   = t.e.$balloon.outerWidth();
+
+        t.e.$balloon.css({
+            "top"  : btn.offset.top + btn.height + 10,//ボタンの上端＋高さ＋10はバルーンに付いている矢印の半分
+            "left" : btn.offset.left + ((btn.width-bal.width)/2)//ボタンの左端＋バルーンの幅とボタンの幅の差異の半分を加算して中央にする
+        });
+    }
+};
+window.Ch.loginbox = Ch.loginbox;//外に出す
+
+})(jQuery);
+
+
+Ch.Attention = function(selector){
+    var parent = jQuery(selector);
+    var attention = jQuery("<span class='attention' />")
+    var attentions = [];
+    var times    = 3;
+    var count    = 0;
+    var duration = 1000;
+    var delay    = 100;
+
+    if(parent.css("position")=="static"){
+        parent.css("position","relative");
+        var position_added = 1;
+    }
+    parent.append(attention);//DOM挿入
+
+    var attentions = parent.find(".attention");
+    var flash = function(){
+        attentions.show().fadeOut(duration);
+        count++;
+    }
+
+    //アニメーション開始
+    flash();
+    var timer = setInterval(function(){
+        flash();
+        if(count>=times){
+            clearInterval(timer);
+        }
+    },duration+delay);
+
+}
+
+Ch.categoryDropdown = {
+    init :function(){
+        jQuery('.channel_category .other').hover(
+            function(){ jQuery(this).addClass('hover'); },
+            function(){ jQuery(this).removeClass('hover'); }
+        ).click(function(){
+            var trigger = jQuery(this);
+            var list_selector = "#other_categories_list";
+
+            trigger.addClass('on');
+            jQuery(list_selector).slideDown("fast",function(){
+                //callbackを待ってbodyのclickを見張る
+                var closeOnOuterClick = function(event){
+                    var caller = jQuery(event.target);
+                    if(caller.closest(list_selector).size()<=0){
+                        //ul外をクリックしたら閉じる
+                        jQuery(list_selector).slideUp("fast",function(){
+                            trigger.removeClass('on');//閉じるのを待ってからactive状態を外す
+                        });
+                        jQuery("body").unbind("click",closeOnOuterClick);
+                        //閉じたらunbind
+                    }
+                }
+                jQuery("body").bind("click",closeOnOuterClick);
+            });
+        });
+    }
+}
+
+Ch.NotifyBar = {
+
+    slc : {
+        bar   : ".nicoch_notifybar",
+        body  : ".body",
+        title : ".title"
+    },
+    elm : {},
+    duration : 5000,
+    timer : null,
+
+    init : function(){
+        var Class = this;
+
+        Class.elm.bar	= jQuery(Class.slc.bar);
+        Class.elm.title	= Class.elm.bar.find(Class.slc.title);
+        Class.elm.body	= Class.elm.bar.find(Class.slc.body);
+        if(Class.elm.bar.size()<=0){return false};//無かったらおわり
+
+        //onじゃないのはjQuery1.4系列が残っているから
+        jQuery("body").delegate(Class.slc.bar,"click",function(){
+            Class.hide();
+        });
+
+        Class.initialized = true;
+    },
+
+    /*
+    * 使い方
+    * A. Ch.NotifyBar.show(bodyに表示したい文字列); //titleがすでに入っていても除去される
+    * B. Ch.NotifyBar.show({title:title文字列,body:body文字列});
+    * C. Ch.NotifyBar.show({title:title文字列,body:body文字列,mode:"info"});
+    */
+    show : function(options){
+        var Class = this;
+
+        if(!Class.initialized){Class.init()};
+
+        if(Class.elm.bar.size()<=0){return false};//無かったらおわり
+
+        var options = options || {};
+
+        if(typeof options.title=="string"){
+            var title = options.title;
+        }else{
+            var title = false;
+        }
+
+        if(typeof options=="string"){
+            var body  = options;
+            var title = "";
+        }else{
+            var body	= options.body	|| false;
+        }
+
+        if(typeof options.duration=="number"){
+            var duration = options.duration || false;
+        }
+
+        if(typeof options.mode=="string"){
+            Class.elm.bar
+                .removeClass("info")
+                .removeClass("warning")
+                .removeClass("caution")
+                .removeClass("done");
+            Class.elm.bar
+                .addClass(options.mode);
+        }
+
+        //titleに文字列が指定されていれば上書き
+        if(typeof title=="string"){Class.elm.title.html(title)};
+
+        //bodyに文字列が一文字以上入っている場合のみ上書き
+        if(body) {Class.elm.body.html(body)};
+
+        Class.elm.bar.hide().slideDown("fast");
+
+        this.countdown(duration);
+
+    },
+
+    countdown : function(duration){
+        var Class = this;
+
+        if(typeof duration=="number"){
+            var custom_duration = duration;
+        }else{
+            var custom_duration = this.duration;
+        }
+
+        if(typeof this.timer!=null){
+            clearTimeout(this.timer);
+        }
+        this.timer = setTimeout(function(){
+            Class.elm.bar.slideUp("slow");
+        },custom_duration);
+    },
+
+    hide : function(){
+        var Class = this;
+        Class.elm.bar.hide();
+    }
+}
+
+Ch.PPVPurchase = {
+
+    slct: {
+        expanded : "expanded"
+    },
+    elem: {},
+
+    //初期化とイベント割り振り
+    initialize : function(){
+
+        var selector = "a.trigger";
+        var canceler = jQuery(".purchase_cancel .canceler");
+        var targets = jQuery(selector);
+        var body    = jQuery("body");
+        var submit_buttons = jQuery("a[data-type=submit]");
+        var confirm_auto_charge = jQuery("input.confirm_auto_charge");
+        var instance = this;
+
+        if(body.attr("data-purchase_button_initialized")=="1"){
+            return false;//初期化済み
+        }
+
+        if(targets.size()>=1){
+            body.on("click",selector,function(event){
+                event.preventDefault();
+                event.stopPropagation();
+                instance.togglePanel(event);
+                return false;
+            });
+            body.attr("data-purchase_button_initialized",1);
+        }
+
+        body.on("click",function(event){
+            var caller = jQuery(event.target);
+            var wrapper  = caller.closest("li.ppv_price");
+            if(wrapper.size()<=0){
+                //外をクリックしたら閉じる
+                instance.collapse();
+            }
+        });
+        canceler.on("click",function(){
+            return instance.collapse();
+        });
+
+        submit_buttons.on("click",function(){
+            var caller = jQuery(this);
+            if(caller.hasClass("pushed") || caller.hasClass("disabled")){return false}
+            caller.addClass("pushed");
+            caller.closest('form').trigger('submit');
+        });
+
+        confirm_auto_charge.on("change",function(){
+            var caller = jQuery(this);
+            var purchase_button = caller.closest("form").find("a.purchase");
+            if(caller.is(":checked")){
+                purchase_button.removeClass("disabled");
+            }else{
+                purchase_button.addClass("disabled");
+            }
+        }).trigger("change");
+
+    },
+
+    /*
+    * eventにはa.triggerをclickしたイベントが入る想定
+    */
+    togglePanel : function(event){
+        var collapsed = this.collapse();//何かを閉じたらtrueが帰る
+
+        this.elem.caller = jQuery(event.target);
+        this.elem.panel  = this.elem.caller.closest(".panel");
+        this.elem.confirm_panel  = this.elem.panel.find(".confirm");
+
+        return this.expand();
+    },
+
+    expand : function(){
+        if(this.elem.confirm_panel.is(":hidden")){
+            //eventにはa.triggerをclickしたというイベントがわたっていた
+            this.elem.form = this.elem.panel.closest("form");
+            this.elem.form.addClass(this.slct.expanded);
+            this.elem.confirm_panel.slideDown("fast");
+            return true;
+        }else{
+            return false;
+        }
+    },
+
+    collapse : function(){
+        if(typeof this.elem.form=="object"){
+            this.elem.form.removeClass(this.slct.expanded);
+            this.elem.confirm_panel.slideUp("fast");
+            this.elem.form = undefined;//何を開いているかの情報を消す
+            return true;
+        }else{
+            return false;
+        }
+    }
+};
+
+//Google広告用
+
+//directionから要素idを取得する関数
+var getAsideId = function(direction){
+    return ad_asides.filter("."+direction).attr("id");
+}

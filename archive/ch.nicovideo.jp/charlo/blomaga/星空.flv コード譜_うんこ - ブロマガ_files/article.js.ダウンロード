@@ -1,0 +1,1381 @@
+/**
+ * Blog API Client Library
+ * @require jQuery
+ * @copyright 2012 DWANGO Co., LTD. All rights reserved.
+ */
+var Blog = {};
+
+var BlogCmtBack = {};
+
+//共通ポップアップ
+var BlogPopCommon = {};
+
+//ポップアップ汎用化
+BlogPopCommon.registHide = function () {
+    jQuery("#blog_pop_common").hide();
+
+}
+//＊＊＊＊＊＊＊＊＊＊＊＊＊＊＊＊＊＊＊＊＊＊＊＊＊＊＊//
+//＊＊＊＊＊     ↑ポップアップ共通化↑     ＊＊＊＊＊//
+//＊＊＊＊＊＊＊＊＊＊＊＊＊＊＊＊＊＊＊＊＊＊＊＊＊＊＊//
+
+Blog.toggleOverlapElement = function (f) {
+    jQuery("object, embed").css("visibility", f ? "show" : "hidden"); //flashを隠す
+}
+
+//モーダルを非表示
+BlogCmtBack.registHide = function () {
+    BlogCommentReplay.hide( 'fade', '', 1000 );
+}
+
+//＊＊＊＊＊＊＊＊＊＊＊＊＊＊＊＊＊＊＊＊＊＊＊＊＊＊＊//
+//＊＊＊＊＊       メルマガ購読の処理JS       ＊＊＊＊＊//
+//＊＊＊＊＊＊＊＊＊＊＊＊＊＊＊＊＊＊＊＊＊＊＊＊＊＊＊//
+
+var blomaga_subscribe_balloon_top = 40;
+
+var ChannelMailmag = {};
+
+ChannelMailmag.request = function( form_id, url ) {
+    if ( $( 'blomaga_subscribe_balloon' ) ) {
+        $( 'blomaga_subscribe_balloon' ).hide();
+    }
+    var params = Form.serialize( form_id, true );
+    //console.log("paramsです",params);
+    new JSONP( url, {
+        parameters: params
+    } );
+}
+
+ChannelMailmag.deleteOnJumpToTop = function( json ) {
+    if(json.status=="failed"){
+        alert( json.message );
+    }else{
+        window.location.replace( "/channel/ch" + json.channel_id );
+    }
+}
+
+ChannelMailmag.deleteOnError = function( json ) {
+    alert( json.message );
+}
+
+
+ChannelMailmag.deleteComment = function (url) {
+    var ret = confirm( "コメントを削除しますか？" );
+    if ( ret == true ) {
+        location.href = url;
+    }
+}
+
+/*完全非同期化されたバージョン clickイベントにchblogJoin.fireを割り当てると使える*/
+var chblogJoin = {
+    fire: function(event){//とにかくボタンを押したとき発火
+
+
+        //nakano　エラーの為コメントアウト
+        event.preventDefault&&event.preventDefault();//イベントのデフォルト動作を止める
+        //ブラウザが最初から持っているアクションを中断させる場合に用います。
+
+        //呼び出しエレメントを取得
+        var event_target = jQuery(event.target);
+        if(event_target.hasClass("chblog_main_btn")){
+            var caller = event_target;
+        }else{
+            var caller = event_target.closest(".chblog_main_btn");
+        }
+        if(typeof caller==undefined){return;}
+
+        var  api_add    = caller.attr("api_add"),
+            api_delete  = caller.attr("api_delete"),
+            params    = caller.attr("params"),
+            type    = caller.attr("type"), //有料か無料の判断
+            delay    = 5000;
+        var is_added  = caller.hasClass("chblog_main_btn_added");
+        var mode    = is_added?"delete":"add";
+        var url      = is_added?api_delete:api_add;
+
+        //先に確認を取る
+        if ( mode == "add" ) {
+            var ret = confirm( "メルマガを購読しますか？" );
+            if ( ret == false ) {
+                return false;
+            }
+            //パラメータに&mail=1を追加
+            if ( type == "normal" || type == "premium" ) {
+                //無料CH、有料CHの場合　パラメータに&mail=1を追加
+                params    = caller.attr("params") + "&mail=1"
+            }
+
+
+        }else if(mode == "delete"){
+
+            var ret = confirm( "メルマガの購読を解除しますか？" );
+            if ( ret == false ) {
+                return false;
+            }
+            if ( type == "premium") {
+                //有料CHの場合　パラメータに&mail=1を追加
+                params    = caller.attr("params") + "&mail=1"
+            }
+        }
+
+        //ディレイが終わっていなければ、ディレイ終了時にリクエストを発行するように.please_waitを追加する。
+        if(caller.hasClass("cooldown")){
+            caller.addClass("loading");//読み込み中状態にする
+            caller.find("span.please_wait").remove();
+            caller.append('<span class="please_wait">数秒お待ちください...</span>');
+            return false;
+        }
+
+        /*Ajaxリクエスト発行、ボタン状態変更、ディレイ設定　をする関数*/
+        var request = function(){
+
+            var is_added  = caller.hasClass("chblog_main_btn_added");
+            var mode    = is_added?"delete":"add";
+            var url      = is_added?api_delete:api_add;
+
+            // URLのプロトコルをあわせる
+            url = url.replace(/^https?:\/\//, location.protocol + "//");
+
+            jQuery.ajax({
+                type:"GET", url:url, data:params, cache:false, dataType:"json",
+                success: function(data){
+
+                    if(data.status=="succeed"){
+
+                        if(mode=="add"){
+                            caller.addClass("chblog_main_btn_added");//メルマガ購読成功
+
+                            jQuery("#blog_pop_common .nicoch_modal_window .title").html("メール購読を開始しました");
+                            jQuery("#blog_pop_common .nicoch_modal_window .mmPopContent p").html("<p class='pop_txt'>このブロマガの新しい記事が公開されると、あなたにメールで届きます。</p><p class='pop_txt sub'>あなたのniconicoアカウントに登録されているメールアドレスに配信されます。<br />配信停止などの設定は<a href='../../my/blog'>こちら</a>でできます。</p>");
+
+                            jQuery("#blog_pop_common").animate({opacity: "show", top: "-50"}, "slow");
+
+
+                        }else{
+                            caller.removeClass("chblog_main_btn_added");//メルマガ購読解除成功
+
+                            var title_html = "メール配信を解除しました";
+                            jQuery("#blog_pop_common .nicoch_modal_window .title").html(title_html);
+                            var body_html =
+                                 "メール配信停止までしばらく時間がかかる場合がございます。<br>"
+                                +"予めご了承ください。";
+                            if(type=="premium"){
+                                body_html = body_html
+                                    +"<br>"
+                                    +"<br>"
+                                    +"<span class='subscribing_warn'>このブロマガを提供しているチャンネルへの入会は<strong>継続しています。</strong><br>"
+                                    +"チャンネル退会はページ下部から行えます。<small>退会するとすべての会員向け特典が失われることにご注意ください。</small></span>";
+                            }
+
+                            jQuery("#blog_pop_common .nicoch_modal_window .mmPopContent p").html(body_html);
+
+                            jQuery("#blog_pop_common").animate({opacity: "show", top: "-50"}, "slow");
+
+                        }
+
+                    }else{
+                        delay = delay/2; //ディレイを半分にする
+                        alert(data.message);//とりあえず簡単にエラー出す
+                    }
+                    caller.removeClass("loading");//読み込み中状態解除
+
+                    caller.addClass("cooldown");//ディレイセット
+                    setTimeout(function(){
+
+                        caller.removeClass("cooldown");
+                        //console.log(caller.removeClass("cooldown"));
+                        if(caller.find("span.please_wait").size()>=1){//ディレイ中にボタンクリックされると.pleasewaitが付与される
+                            caller.find("span.please_wait").remove();
+                            request();//リクエスト発行
+                        }
+                    },delay);//ディレイ解除タイマー
+
+                },
+                error : function(XMLHttpRequest, textStatus, errorThrown){
+
+                    console.log(XMLHttpRequest, textStatus, errorThrown);
+
+                }
+
+            });
+
+        }
+
+        request();
+
+        return;
+
+    }
+}
+jQuery(function(){
+    jQuery("a#chblogJoin").click(chblogJoin.fire);
+});
+
+//＊＊＊＊＊＊＊＊＊＊＊＊＊＊＊＊＊＊＊＊＊＊＊＊＊＊＊//
+//＊＊＊＊＊     ↑メルマガ購読の処理JS↑     ＊＊＊＊＊//
+//＊＊＊＊＊＊＊＊＊＊＊＊＊＊＊＊＊＊＊＊＊＊＊＊＊＊＊//
+
+Channelmailmag = {};
+Channelmailmag.addOnChangeButtonHide = function( json ) {
+/** retransmission()を実行した戻り値にある関数が実行する処理
+jsonp ※汎用再送メール成功時 **/
+    //console.log('addOnChangeButtonHide', json);
+
+    jQuery("#blog_pop_common .nicoch_modal_window .title").html("メールマガジンを送信しました。");
+    jQuery("#blog_pop_common .nicoch_modal_window .mmPopContent p").html("メール配信までしばらく時間がかかる場合がございます。<br>しばらくお待ちください。");
+    jQuery("#blog_pop_common").animate({opacity: "show", top: "-50"}, "slow");
+
+};
+Channelmailmag.addOnError = function( json ) {
+/** retransmission()を実行した戻り値にある関数が実行する処理
+jsonp ※汎用再送メール失敗時 **/
+
+    var error_txt = json.code;
+    //console.log('addOnError', error_txt);
+
+    jQuery("#blog_pop_common .nicoch_modal_window .title").html("メールマガジンを送信できませんでした。");
+
+    if(error_txt == "too many retry "){
+        jQuery("#blog_pop_common .nicoch_modal_window .mmPopContent p").html("再送信後、30分程度は再送信できません。<br>しばらくたってからお試しください。");
+    } else if(error_txt == "no bloguser"){
+        jQuery("#blog_pop_common .nicoch_modal_window .mmPopContent p").html("ブログの購読が解除されています。<br>メール受信する場合は、購読を再開してください。");
+    } else if(error_txt == "no login"){
+        jQuery("#blog_pop_common .nicoch_modal_window .mmPopContent p").html("ログイン後再度お試しください。");
+    } else if(error_txt == "no bloguser"){
+        jQuery("#blog_modal_retransmission .nicoch_modal_window .mmPopContent p").append("ブログの購読が解除されています。<br>メール受信する場合は、購読を再開してください。");
+    } else {
+        jQuery("#blog_pop_common .nicoch_modal_window .mmPopContent p").html("しばらく経ってからお試しください。<br>この表示が何度も表示される場合はサポートまでお問い合せください。");
+    }
+    jQuery("#blog_pop_common").show();
+
+};
+
+function article_retransmission(event){
+
+    var event_target = jQuery(event.target);
+    var caller = event_target.hasClass("blog_retransmission") ? event_target : event_target.closest(".blog_retransmission");
+    var url    = caller.attr("data-url");
+    var params = caller.attr("params");
+
+    caller.addClass("loading");//読み込み中状態にする
+
+    // URLのプロトコルをあわせる
+    url = url.replace(/^https?:\/\//, location.protocol + "//");
+
+    jQuery.ajax({
+        url:url,
+        data:params,
+        dataType:'jsonp',
+        jsonp : false
+    });
+    //サーバにデータを保存し、処理が完了したことをユーザに伝えます。
+}
+
+//＊＊＊＊＊＊＊＊＊＊＊＊＊＊＊＊＊＊＊＊＊＊＊＊＊＊＊//
+//＊＊＊＊＊     ↑購読メルマガ再送↑     ＊＊＊＊＊＊＊//
+//＊＊＊＊＊＊＊＊＊＊＊＊＊＊＊＊＊＊＊＊＊＊＊＊＊＊＊//
+
+//返信用コメントを表示
+jQuery(document).ready(function($){
+
+    /*
+    とりあえずpopupで出すだけの処理は書きました。
+    すでに表示している要素を取得して、テンプレとなる要素にいれてるだけです。
+
+    残りの機能とか
+    ・popupしたときに画面からはみ出ないように
+    ・mouseoutの対象は、>>1とpopupに
+    ・
+    */
+
+    BlogCommentReplay = {};
+
+    // テンプレートとなる要素を取得
+    var $comment_template = $("#comment_template");
+
+
+    /** 最初に呼ばれるメソッド */
+    BlogCommentReplay.init = function() {
+        // bodyに入れておく
+        $("body").prepend($comment_template);
+        // イベント付与
+        this.bind();
+    };
+
+    /** >>1にロールオーバーとアウトのイベントを付与 */
+    BlogCommentReplay.bind = function() {
+        $("a.comment_replay_link").each(function() {
+            var $self = $(this);
+            $self.click(BlogCommentReplay.show);
+            //$self.mouseover(BlogCommentReplay.show);
+            //$self.mouseout(BlogCommentReplay.hide);
+        });
+    };
+
+    /** >>1クリックしたときの処理 */
+    BlogCommentReplay.show = function(e) {
+        var $self = $(this);
+        var comment_id = $self.attr("data-comment-replay-id");
+        var $comment = $("#comment_" + comment_id);
+
+        //alert(comment_id);
+
+        // テンプレ要素にcontentsを入れる
+        $comment_template.find("#comment_replay_body").html($comment.html());
+
+        //元コメントが削除されている場合
+        if($comment.html() == null){
+            $comment_template.find("#comment_replay_body").html("すでにコメントが削除されています");
+        }
+
+        //*****nakano
+        //やること
+        //1、ポップアップ内の#data-comment-replay-idを取得
+        //2、($("#comment_" + comment_id).length)ここにidを入れて、コメントがあるか判断する
+        //3、なければ、ポップのcomment_return_no_ID　のリンクを無効にしたい
+
+        //*****$comment.html()が要素を取得したあとに処理を追加
+
+        //【No.1】ポップアップに使われているdata-comment-replay-idを取得する
+        var pop_comment_id = $('#comment_replay_body .comment_replay_link').attr("data-comment-replay-id");
+
+        //リンク無効ようにリンク先も取得
+        var pop_comment_href = $('#comment_replay_body .comment_replay_link').attr("href");
+
+//    console.log("コメント_href" + pop_comment_href);
+
+        //要素にCSSでボーダーをつける【テスト用】
+        //$('#comment_replay_body .comment_replay_link').css("border", "2px dotted blue");
+
+
+        //【No.2】ポップに挿入されている返信コメントidチェックし、元コメントがあるかチェックする
+        if (!$("#comment_" + pop_comment_id).length) {
+        //なければのリンク無効の処理を入れる
+
+            //リンク先を空にする
+            $("#comment_return_no_" + pop_comment_id)
+                .attr("href", "javascript:void(0)")
+                .css( 'text-decoration','none')
+                .css( 'cursor','default');
+        }
+
+        // 表示位置を指定
+        $comment_template.css({
+            top : e.pageY + 0,
+            left : e.pageX + 0
+        })
+        .find(".arrow_box")
+            .removeClass("arrow_box").addClass("return_data");
+
+        // 表示
+        //$comment_template.show();
+        $comment_template.animate({opacity: "show"}, "slow");
+
+
+        //要素からfindを用いてcomment_closed_btnを捜す
+        $comment_template.find('.comment_closed_btn').click(function() {
+            //console.log(111);
+            BlogCommentReplay.hide( 'fade', '', 1000 );
+        });
+
+        return false;
+
+    };
+
+    /** >>1マウスオーバーしたときの処理 */
+    BlogCommentReplay.hide = function() {
+        $comment_template.hide();
+    };
+
+    BlogCommentReplay.init();
+
+
+});//end jQuery
+
+//＃で来た時　入会後のお知らせ
+jQuery(document).ready(function($){
+
+    if(location.hash == "#join_blog"){
+        Ch.NotifyBar.show("購読ありがとうございます。メールの受信については<a href='/my/blog'>メルマガ購読設定</a>より行えます。");
+        location.hash = "";
+    }
+
+});//end jQuery
+
+/**
+ * もっと見る
+ *
+ * /blog/[:channel_id}で使用。
+ * ajaxで続きのページを取得し、表示させるだけ。
+ */
+var BlogMoreList = {};
+
+jQuery(document).ready(function($) {
+
+    var $more_btn = $('#more_list_btn');
+    var $blog_list = $('#blog_list');
+
+    var self;
+
+    BlogMoreList = {
+
+        // 1ページ目
+        page : 1,
+
+        // 初期化
+        init : function() {
+            self = this;
+            this.bind();
+        },
+
+        // クリックイベント付与
+        bind : function() {
+            $more_btn.click(this.get);
+        },
+
+        // もっと見る押したらajaxで取得してappend
+        get : function(e) {
+            // disableなら何もしない
+            if (self.isDisable()) {
+                return false;
+            }
+            // ajaxで次のページ取得
+            $.ajax({
+                type     : 'GET',
+                url      : $more_btn.attr('data-href'),
+                data     : {
+                            page : ++self.page
+                             },
+                dataType : 'json',
+                success  : function(json) {
+                    // is_list_lastの場合btnをdisableに
+                    if (!!json.is_last_page) {
+                        self.disableBtn();
+                    }
+                    if (json.body) {
+                        // 取得したhtmlをappend
+                        $blog_list.append(json.body);
+                    }
+                },
+                error : function() {
+                    // こんざつちゅうです出す
+                }
+            });
+            return false;
+        },
+
+        // クリックイベント付与
+        isDisable : function() {
+            return $more_btn.hasClass('disable_more_btn');
+        },
+
+        // もっと見るボタンを無効に
+        // aタグなんでhrefを消す + classつけてdisableに
+        // もっと見る以外に、ajaxないのでdsiable→enableになることはない。
+        disableBtn : function() {
+            $more_btn.removeAttr('href').addClass('disable_more_btn');
+        }
+    };
+    BlogMoreList.init();
+});
+
+jQuery(document).ready(function($) {
+    //右カラム全体の高さを取得
+    asideHeight($("aside.main").height());
+
+});
+
+//左カラムの背景の高さが右カラムより低い場合、右カラム分の高さの背景をしく
+function asideHeight(h) {
+    //alert(jQuery("section.content_body article.main").height());
+    if(jQuery("section.content_body article.main").height() < h){
+        jQuery('section.content_body article.main').css( 'min-height', h + 'px');
+    }
+}
+
+//月別もっと見る　閉じる
+//表示
+jQuery(document).ready(function(){
+    jQuery('.viewBtn').click(
+        function() {
+
+            puch_btn = jQuery(this).parent().attr('class');
+
+            if (puch_btn == "monthly_archive") {
+                click_data = jQuery("#monthly_archive_record");
+            } else if(puch_btn == "category_container") {
+                click_data = jQuery("#category_record");
+            } else {
+
+            }
+            click_data.css("max-height","none");
+
+            jQuery("." + puch_btn + " " + '.viewBtn').css( 'display','none');
+            jQuery("." + puch_btn + " " + '.viewClose').css( 'display','block');
+
+            //左カラムの背景の高さを調整
+            asideHeight(jQuery("aside.main").height());
+
+    });
+
+    //非表示
+    jQuery('.viewClose').click(
+        function() {
+
+            //console.log(jQuery(this).parent().attr('class'));
+
+            puch_btn = jQuery(this).parent().attr('class');
+
+            if (puch_btn == "monthly_archive") {
+                click_data = jQuery("#monthly_archive_record");
+            } else if(puch_btn == "category_container") {
+                click_data = jQuery("#category_record");
+            } else {
+
+            }
+
+            click_data.css("max-height","120px");
+
+            var desired_height = click_data.height();
+
+            jQuery("." + puch_btn + " " + '.viewBtn').css( 'display','block');
+            jQuery("." + puch_btn + " " + '.viewClose').css( 'display','none');
+
+    });
+});
+
+jQuery(function(){
+    jQuery("#ppv_purchase_btn_area").click(function(){
+        if(jQuery("div#kiyaku_hide_area").css("display")=="none"){
+            jQuery("div#ppv_purchase_btn_area").css( 'opacity','0.3');
+            jQuery(".chblog_ppv_purchase_ck").css( 'cursor','default');
+            jQuery(".chblog_ppv_purchase_ck:hover").css( 'background-position','0px 0px');
+
+            jQuery("div#kiyaku_hide_area").slideDown("slow");
+            //jQuery("div#ppv_purchase_btn_area").css("display")=="none";
+        }
+    });
+});
+
+//コメントへの返信時に入力欄下に表示される元コメント
+jQuery(function($){
+    jQuery(".comment_return_btn").bind("click", function(){
+        var form_comment_txt = jQuery("#form_comment_txt");
+        var reply_quote_box = jQuery("#reply_quote");
+        var reply_quote_body = jQuery("#reply_quote .body");
+        var replyID = jQuery(this).attr("data-comment-replay-id");
+        var replyText = jQuery(this).attr("data-comment-replay-text");
+        var comment = '>>'+replyID+"\r"+form_comment_txt.val();
+        form_comment_txt.focus().val(comment);
+        reply_quote_box.show();
+        reply_quote_body.html('No.'+replyID+"<br>"+replyText);
+    });
+});
+
+/**
+ * 記事クラス
+ */
+var Article = {};
+
+/**
+ * 記事本文を加工/強化する
+ */
+Article.Enhance = function(){
+
+    var body_html = jQuery(".main_blog_txt");
+
+    //src=http://ch.nicovideo.jp/image/を取得
+    var api_images = body_html.find("img[src*='nicovideo.jp/image/'], img[data-original*='nicovideo.jp/image/']");
+    api_images.map(function(i,e){
+        var img = jQuery(e);
+        if(img.closest("a").size()<=0){//a内にあるなら処理しない
+
+            //クラス名をつける
+            img.addClass("attached_image");
+
+            //クリックで原寸大
+            img.on("click",function(){
+                window.open(jQuery(this).attr("src"));
+            });
+
+        }
+    });
+
+};
+jQuery(function($){
+    Article.Enhance();
+});
+
+//右カラム記事一覧のli全体をリンク
+jQuery(function(){
+    jQuery(".li_article").click(function(){
+        window.location=jQuery(this).find("a").attr("href");
+        return false;
+    });
+});
+
+//EPUB
+//クリックイベント
+jQuery(document).ready(function(){
+
+    //格納
+    var $epub_list = jQuery('div.epub_list');
+
+    //最初以外を隠す
+    //$epub_list.hide();
+
+    jQuery('div.epub_btn_base').click(function(){
+        if(jQuery(this).next('div.epub_list').is(':visible')) {
+
+            //selectedの削除
+            jQuery("div.epub_btn").removeClass("selected");
+
+            //閉じる
+            jQuery(this).next('div.epub_list').slideUp(300);
+        } else {
+            //selectedの削除
+            jQuery("div.epub_btn").removeClass("selected");
+            //他に表示されているものは閉じる
+            $epub_list.slideUp(300);
+            //クラスの追加(closest=最も近い親要素を選択する)
+            jQuery(this).closest("div.epub_btn").addClass("selected");
+            //表示
+            jQuery(this).next('div.epub_list').slideDown(300);
+        }
+    });
+
+    jQuery('.epub_rink a').click(function(){
+            //selectedの削除
+            jQuery("div.epub_btn").removeClass("selected");
+
+            //閉じる
+            jQuery(this).closest('div.epub_list').slideUp(300);
+    });
+
+});
+
+jQuery(document).ready(function(){
+
+    //コメント10件以上の場合のもっと見るボタン押下
+    jQuery('.more_comment_btn').click(function(){
+            //selectedの削除
+            jQuery(".comment_user").animate({opacity: "show", top: "-50"}, "slow");
+            jQuery('.more_comment_btn').css( 'display','none');
+    });
+
+    //【白ベース】タグリンクhoverイベント
+    jQuery(".white").on("mouseenter", ".default ul.tag_list li a", function(){
+        jQuery(this).parent().css('background', '#FFF');
+    });
+    jQuery(".white").on("mouseleave", ".default ul.tag_list li a", function(){
+        jQuery(this).parent().css('background', 'url("../../img/common/alpha/w_a50.png")');
+    });
+    //編集時
+    jQuery(".white").on("mouseenter", ".edit ul.tag_list li", function(){
+        jQuery(this).find(".tagControlContainer .tag_unlock").css('opacity', '0.7');
+        jQuery(this).find(".tagControlContainer .tag_delete").css('opacity', '0.7');
+        //オーナーの場合のみ
+        if (jQuery(".tag_list").hasClass("owner")) {
+            jQuery(this).find(".tagControlContainer .tag_lock").css('opacity', '0.7');
+        }
+    });
+    jQuery(".white").on("mouseleave", ".edit ul.tag_list li", function(){
+        jQuery(this).find(".tagControlContainer .tag_unlock").css('opacity', '0.3');
+        jQuery(this).find(".tagControlContainer .tag_delete").css('opacity', '0.3');
+        //オーナーの場合のみ
+        if (jQuery(".tag_list").hasClass("owner")) {
+            jQuery(this).find(".tagControlContainer .tag_lock").css('opacity', '0.3');
+        }
+    });
+
+    //【黒ベース】タグリンクhoverイベント
+    jQuery(".black").on("mouseenter", ".default ul.tag_list li a", function(){
+        //parentでaの一つ上のHTML要素つまり親要素を取得できる。
+        //そしてその取得した親要素に対してcssメソッドで背景色を変更
+        jQuery(this).parent().css('background', '#333');
+    });
+    jQuery(".black").on("mouseleave", ".default ul.tag_list li a", function(){
+            //over時と同じ。色を元に戻している。
+        jQuery(this).parent().css('background', 'url("../../img/common/alpha/k_a30.png")');
+    });
+    //編集時
+    jQuery(".black").on("mouseenter", ".edit ul.tag_list li", function(){
+        jQuery(this).find(".tagControlContainer .tag_unlock").css('opacity', '0.7');
+        jQuery(this).find(".tagControlContainer .tag_delete").css('opacity', '0.7');
+        //オーナーの場合のみ
+        if (jQuery(".tag_list").hasClass("owner")) {
+            jQuery(this).find(".tagControlContainer .tag_lock").css('opacity', '0.7');
+        }
+    });
+    jQuery(".black").on("mouseleave", ".edit ul.tag_list li", function(){
+        jQuery(this).find(".tagControlContainer .tag_unlock").css('opacity', '0.3');
+        jQuery(this).find(".tagControlContainer .tag_delete").css('opacity', '0.3');
+        //オーナーの場合のみ
+        if (jQuery(".tag_list").hasClass("owner")) {
+            jQuery(this).find(".tagControlContainer .tag_lock").css('opacity', '0.3');
+        }
+    });
+
+});
+
+/*****************************************************************************************/
+/* 投稿後シェアボタンの表示
+/*****************************************************************************************/
+
+
+
+
+
+/*****************************************************************************************/
+/* スクロールスライドイベント
+/*****************************************************************************************/
+
+var max_tag_list_height = 22;
+
+var duration_speed = 600;
+
+var open_close_speed = 200;
+
+var opacity_speed = 200;
+
+var tag_easing = "swing";
+
+//上部スライドエリアの高さ
+var notice_container_height = -135;
+
+//上部スライドを一部表示させる
+var notice_container_open_area = notice_container_height + 15;
+
+//横幅サイズ基準値
+var window_size = 1100;
+
+//レコメンド
+jQuery(document).ready(function(){
+
+    //表示されているウィンドウの高さ
+    var windowHeight = jQuery(window).height();
+    //追従ヘッダーの高さ
+    var siteHeaderHeight = jQuery('#siteHeader').height();
+    //レコメンドエリア
+    var nav = jQuery('.notice_container');
+    //レコメンドエリア
+    var open_slide = jQuery('.notice_container_open_slide');
+    //レコメンドの表示位置
+    var recommendViewPosition = 0;
+    //スライドエリアが表示される位置に使用する高さを取得
+    var triggerNode = jQuery("#article_end");
+
+    //ナビゲーションの高さ
+    var navHeight = nav.height();
+    //表示フラグ
+    var showFlag = false;
+    //閉ボタンフラグ
+    var closeBtnFlag = false;
+    //開ボタンフラグ
+    var openBtnFlag = false;
+    //タグフラグ
+    var tagOpenBtnFlag = false;
+    //スクロール0フラグ
+    var scrollPositionZeroFlag = false;
+    //ナビゲーションの位置まできたら表示
+    jQuery(window).scroll(function () {
+
+        //scrollPosition = スクロール位置
+        var scrollPosition = jQuery(this).scrollTop();
+
+        //nofixクラスがあるか？※nofix == true(追従しない)
+        var siteHeaderFlag = jQuery("body").hasClass("nofix");
+
+        //スライド表示の位置
+        var recommendViewPosition = 0;
+
+        //記事watchページのみで実行
+        if(jQuery("#article_end").length){
+            recommendViewPosition = jQuery(triggerNode).offset().top - windowHeight;
+        }
+
+        if (recommendViewPosition > 0 ) {
+            //（記事が一画面内に収まらない時※通常）
+        }else{
+            //#article_endが位置が画面内にあり、windowHeightをの高さを引いたらマイナスになるとき（記事が一画面内に収まっている時）
+            recommendViewPosition = 100;
+        };
+
+        //////////////////////////////
+        //close_btn(閉じるボタン)押していない
+        //////////////////////////////
+        if (closeBtnFlag == false) {
+
+            //////////////////////////////
+            //手動で開いていない場合に実行
+            //////////////////////////////
+            if (!openBtnFlag) {
+                    //console.log("★!openBtnFlag★");
+                //レコメンド表示位置に達した場合
+                //（スクロール位置 >= レコメンドの表示位置）
+                if (scrollPosition >= recommendViewPosition) {
+                    //console.log("★★★1");
+
+                    if (showFlag == false) {
+                        showFlag = true;
+
+                        jQuery('.facebook_menu_container').css( 'display','none');
+
+                        //共通ヘッダーは追従しない場合
+                        if(siteHeaderFlag) {
+                            nav.animate({
+                                height: 'show',
+                                top: '0px'
+                            },{'duration': duration_speed,'easing': tag_easing});
+
+                        } else {
+                        //共通ヘッダーが追従する場合
+                            nav.animate({
+                                height: 'show',
+                                top: siteHeaderHeight+'px'
+                            },{'duration': duration_speed,'easing': tag_easing});
+                        }
+                    }
+                //レコメンド非表示位置
+                //（スクロール位置が0になる前に非表示
+                } else if (scrollPosition <= 100) {
+                            //console.log("★1");
+                    if (showFlag) {
+                        showFlag = false;
+
+                            //console.log("★1-2");
+                        //手動で開いていない
+                        if (!openBtnFlag) {
+                            //console.log("★1-3");
+                            //共通ヘッダーは追従しない場合
+                            if(siteHeaderFlag) {
+                                nav.animate({
+                                    height: 'show',
+                                     opacity: 'toggle',
+                                     top: notice_container_height +'px'
+                                },{'duration': duration_speed,'easing': tag_easing});
+                            } else {
+                            //共通ヘッダーが追従する場合
+                                nav.animate({
+                                    height: 'show',
+                                    opacity: 'toggle',
+                                    top: notice_container_height +'px'
+                                },{'duration': duration_speed,'easing': tag_easing});
+                            }
+                        }
+                    }
+                }
+            } else {
+            //////////////////////////////
+            //openBtnFlag true 手動で開けた
+            //////////////////////////////
+
+                if(scrollPosition != 0){
+                    //スクロール位置が0以外のとき
+
+                    //スクロール0に到達した時にフラグ立つ※多重に実行されるのを防止
+                    if(scrollPositionZeroFlag) {
+                        if(siteHeaderFlag) {
+                            //nav.css( 'top', 0 +'px');
+                            nav.animate({
+                                top: '0px'
+                            },{'duration': duration_speed,'easing': tag_easing});
+
+
+                        } else {
+                            //nav.css( 'top', 36 +'px');
+                            nav.animate({
+                                top: '36px'
+                            },{'duration': duration_speed,'easing': tag_easing});
+                        }
+                        scrollPositionZeroFlag = false;
+                    }
+
+                } else {
+                //スクロール位置が0のとき
+                    nav.animate({
+                        height: 'show',
+                        top: notice_container_height +'px'
+                    },{'duration': duration_speed,'easing': tag_easing});
+
+                    //スクロール0に到達した時
+                    scrollPositionZeroFlag = true;
+                }
+            }
+
+        }else{
+        //////////////////////////////
+        //close_btn(閉じるボタン)押している
+        //////////////////////////////
+        //console.log("★★★(閉じるボタン)押している");
+            //ヘッダーが追従していない
+            if(siteHeaderFlag) {
+
+                //スクロール位置がレコメンド非表示エリアのとき
+                if (scrollPosition != 0) {
+                    nav.css('top', '-45px');
+                    nav.animate({
+                        opacity: 'show'
+                    },500);
+                }
+                //スクロールしてTOPに戻った場合
+                if (scrollPosition == 0) {
+                    nav.animate({
+                        opacity: 'hide'
+                    },500);
+                }
+            }else {
+                //スクロール位置がレコメンド非表示エリアのとき
+                if (scrollPosition <= recommendViewPosition) {
+                    nav.css('top', '-11px');
+                    nav.animate({
+                        opacity: 'show'
+                    },500);
+                }
+                //スクロールしてTOPに戻った場合
+                if (scrollPosition == 0) {
+                    nav.animate({
+                        opacity: 'hide'
+                    },500);
+                }
+
+            }
+
+        }
+
+    });
+
+
+    jQuery(document).ready(function($) {
+        //レコメンドタグ全体の高さを取得
+        tag_list_height($(".notice_container ul.recommend_tag_list").height());
+
+        //手動でウィンドウサイズを変更
+        jQuery(window).resize(function() {
+            //ウィンドウサイズを1100px以下の時
+            if (jQuery(window).width() <= window_size){
+                //タグの幅をauto
+                jQuery('.notice_container ul.recommend_tag_list').css( 'width', '760px');
+
+            }else{
+                //タグの幅をauto
+                jQuery('.notice_container ul.recommend_tag_list').css( 'width', '808px');
+
+            }
+        });    //すべて表示用のボタンの押下時
+
+        jQuery('.all_tag_view').click(
+            function() {
+
+            tagOpenBtnFlag = true;
+            //タグの高さをauto
+            jQuery('.notice_container ul.recommend_tag_list').css( 'height', 'auto');
+
+            //ウィンドウサイズを1100px以下の時
+            if (jQuery(window).width() <= window_size){
+                //タグの幅をauto
+                jQuery('.notice_container ul.recommend_tag_list').css( 'width', '760px');
+
+            }else{
+                //タグの幅をauto
+                jQuery('.notice_container ul.recommend_tag_list').css( 'width', '808px');
+
+            }
+
+            //タグの閉じるボタンを表示
+            jQuery('.all_tag_close').css( 'display', 'inline-block');
+            jQuery('.all_tag_view').css( 'display', 'none');
+
+        });
+        //タグの縮小用のボタンの押下時
+        jQuery('.all_tag_close').click(
+            function() {
+
+            tagOpenBtnFlag = false;
+            //タグの高さをauto
+            jQuery('.notice_container ul.recommend_tag_list').css( 'height', max_tag_list_height + 'px');
+
+            //ウィンドウサイズを1100px以下の時
+            if (jQuery(window).width() <= window_size){
+                //タグの幅をauto
+                jQuery('.notice_container ul.recommend_tag_list').css( 'width', '760px');
+
+            }else{
+                //タグの幅をauto
+                jQuery('.notice_container ul.recommend_tag_list').css( 'width', '808px');
+
+            }
+            //タグの閉じるボタンを表示
+            jQuery('.all_tag_view').css( 'display', 'inline-block');
+            jQuery('.all_tag_close').css( 'display', 'none');
+
+        });
+        //タグを編集ボタンの押下時
+        jQuery('.login.edit_tags').click(
+            function() {
+            recommend_close();
+
+            $('body,html').animate({
+                scrollTop: 0
+            }, 500);
+
+            //selectedクラスがあるか？※selected == true(タグ編集ボタン押下中)
+            var tag_edit_btnFlag = jQuery(".tag_edit_btn a").hasClass("selected");
+
+            //タグ編集ボタンを押す
+            if (!tag_edit_btnFlag) {
+            ArticleTagController.changeTagEditMode();
+            return false;
+            }
+        });
+
+    });
+
+    //追従ボタンを押したときの処理
+    jQuery('#siteHeaderRightMenuFix').click(function(){
+
+    });
+    //追従ボタンを押したときの処理
+    jQuery('#siteHeaderRightMenuUnfix').click(function(){
+
+        // scrollPosition = スクロール位置
+        var scrollPosition = jQuery(document).scrollTop();
+
+        //スクロールしてTOPに戻った場合
+        if (scrollPosition != 0){
+            //closeBtnFlag = スライド表示が閉じてる
+            if (closeBtnFlag){
+                nav.css( 'top', -45 +'px');
+            } else {
+                nav.css( 'top', 0 +'px');
+            }
+        }
+    });
+
+    //////////////////////////////
+    //閉じるを押したときの処理
+    //////////////////////////////
+    jQuery('.notice_container .close_btn_area .close_btn').click(function(){
+        recommend_close();
+    });
+
+    //レコメンドを閉じるときの処理
+    function recommend_close() {
+
+        showFlag = false;
+        closeBtnFlag = true;
+
+        //現在のスクロール位置を取得
+        var h = jQuery(document).scrollTop();
+
+        //nofixクラスがあるか？
+        var siteHeaderFlag = jQuery("body").hasClass("nofix");
+
+        //ヘッダーが追従していない
+        if(siteHeaderFlag) {
+            if(h){
+            //スクロール位置が0以外のとき
+                nav.animate({
+                    height: 'show', top: -45 +'px'
+                },{'duration': open_close_speed,'easing': tag_easing});
+
+            }else {
+            //スクロール位置が0のとき、レコメンドが表示される場合は追従ヘッダー分を空ける
+                nav.animate({
+                    height: 'show', top: -11 +'px'
+                },{'duration': open_close_speed,'easing': tag_easing});
+            }
+        } else {
+
+            if(h){
+            //スクロール位置が0以外のとき
+                nav.animate({
+                    height: 'show', top: -11 +'px'
+                },{'duration': open_close_speed,'easing': tag_easing});
+
+            }else {
+            //スクロール位置が0のとき、レコメンドが表示される場合は追従ヘッダー分を空ける
+                nav.animate({
+                    height: 'show', top: -11 +'px'
+                },{'duration': open_close_speed,'easing': tag_easing});
+            }
+        }
+
+        //再表示用のボタンを表示する
+        open_slide.animate({
+            opacity: 'show',
+        },{'duration': duration_speed,'easing': tag_easing});
+
+        //closeの際に内容を透明化
+        jQuery(".notice_article_container .article_data").fadeTo(opacity_speed,0.0);
+        jQuery(".notice_article_container .post_tags").fadeTo(opacity_speed,0.0);
+        jQuery(".notice_article_container .close_btn_area").fadeTo(opacity_speed,0.0);
+
+
+        if(tagOpenBtnFlag) {
+            //タグが開いていたら閉じる
+            jQuery('.notice_container ul.recommend_tag_list').css( 'height', '20px');
+
+            jQuery('.all_tag_view').css( 'display', 'inline-block');
+            jQuery('.all_tag_close').css( 'display', 'none');
+            jQuery('.normal_tag_view').css( 'display', 'none');
+        }
+    }
+
+    //////////////////////////////
+    //再表示用のボタンを押したときの処理
+    //////////////////////////////
+    ////jQuery('.open_btn_area .open_btn').click(function(){
+    jQuery('.notice_container_open_slide').click(function(){
+        closeBtnFlag = false;
+        openBtnFlag = true;
+
+        //現在のスクロール位置を取得
+        var h = jQuery(document).scrollTop();
+
+        if(h){
+        //スクロール位置が0以外のとき
+            //nofixクラスがあるか？
+            var siteHeaderFlag = jQuery("body").hasClass("nofix");
+
+            //共通ヘッダーは追従しない
+            if(siteHeaderFlag) {
+                nav.animate({
+                    height: 'show', top: '0px'
+                },{'duration': open_close_speed,'easing': tag_easing});
+            } else {
+                nav.animate({
+                    height: 'show', top: siteHeaderHeight+'px'
+                },{'duration': open_close_speed,'easing': tag_easing});
+            }
+
+        }else {
+        //スクロール位置が0のとき
+        //レコメンドが表示される場合は追従ヘッダー分を空ける
+            //共通ヘッダーは追従しない
+            if(siteHeaderFlag) {
+                nav.animate({
+                    height: 'show', top: '0px'
+                    },{'duration': open_close_speed,'easing': tag_easing});
+            } else {
+                nav.animate({
+                    height: 'show', top: siteHeaderHeight+'px'
+                    },{'duration': open_close_speed,'easing': tag_easing});
+            }
+        }
+
+        //closeの際に内容を表示する
+        jQuery(".notice_article_container .article_data").fadeTo(opacity_speed,1.0);
+        jQuery(".notice_article_container .post_tags").fadeTo(opacity_speed,1.0);
+        jQuery(".notice_article_container .close_btn_area").fadeTo(opacity_speed,1.0);
+
+        //オープンのボタンを非表示にする
+        open_slide.animate({
+            opacity: 'hide',
+        },{'duration': opacity_speed,'easing': tag_easing});
+
+
+    });
+
+});
+
+function tag_list_height(h) {
+
+    //タグが2行以上の場合、予め縮小表示にする
+    if(max_tag_list_height < h){
+        jQuery('.notice_container ul.recommend_tag_list').css( 'height', max_tag_list_height + 'px');
+
+        //すべて表示用のボタンを表示、通常は非表示
+        jQuery('.all_tag_view').css( 'display', 'inline-block');
+    }else{
+    //タグが1行の場合
+        jQuery('.all_tag_close').css( 'display', 'none');
+        jQuery('.all_tag_view').css( 'display', 'none');
+
+    }
+}
+function notice_container_tag_list_check(tags) {
+
+    jQuery('.notice_container ul.recommend_tag_list').css( 'height', 'auto');
+
+    var nonTag = jQuery(".notice_container .post_tags").find(".recommend_tag");
+    if(tags) {
+        nonTag.removeClass("none");
+    } else {
+        nonTag.addClass("none");
+    }
+
+    tag_list_height(jQuery(".notice_container ul.recommend_tag_list").height());
+
+}
+
+jQuery(document).ready(function(){
+
+    //追従noticeバー(仮)のFacebookアイコンにマウスが乗った場合
+    //シェアボタンのあるパネルを表示する
+    jQuery(".notice_container").on("mouseenter", ".facebook_icon_btn_area",
+        function(){
+            jQuery(this).children('.facebook_menu_container').animate({
+                height:  'show',
+                opacity: 'show'
+            });
+        }
+    );
+
+    //追従noticeバー(仮)のFacebookアイコンからマウスが離れた場合に
+    //シェアボタンのあるパネルを閉じる
+    jQuery(".notice_container").on("mouseleave", ".facebook_icon_btn_area",
+        function(){
+            jQuery(this).children('.facebook_menu_container').animate({
+                height:  'hide',
+                opacity: 'hide'
+            });
+        }
+    );
+
+});
+
+/*****************************************************************************************/
+
+//ページTOPへ戻る
+jQuery(function() {
+
+    var toTopButton = jQuery('#js_to_top_button');
+    toTopButton.hide();
+
+    toTopButton.click(function () {
+        jQuery('html,body').animate({
+            scrollTop: 0
+        }, 200);
+        return false;
+    });
+
+});
+
+//ページTOPへ戻る
+;(function($){
+
+    var scrollPageTopButton = function() {
+        var $window, documentHeight, footerPosition, scrollTop, windowHeight;
+        var $toTopButton = $('#js_to_top_button');
+        var footerHeight = $('footer.site').height();    //フッターの高さ
+
+    //    console.log("★startPosition★", startPosition);
+    //    console.log("★toTopButtonBottom★", toTopButtonBottom);
+    //    console.log("★footerHeight★", footerHeight);
+
+        $window = $(window);
+        documentHeight = $(document).height();      //ページ全体の高さ
+        windowHeight = $window.height();        //表示されているウィンドウの高さ
+        scrollTop = $window.scrollTop();        //スクロール位置
+        asideMainHeight = $('aside.main').height();    //右サイドにあるコンテンツの高さ
+        btn_totop_bottom = 13;              //btn_totopのCSS　positionのbottom位置
+        recommendHeight = $('.other_article_list_area').height();  //いまブロマガで人気の記事の高さ
+
+    //    console.log("★documentHeight★", documentHeight);
+    //    console.log("★windowHeight★", windowHeight);
+    //    console.log("★scrollTop★", scrollTop);
+    //    console.log("★asideMainHeight★", asideMainHeight);
+    //    console.log("★recommendHeight★", recommendHeight);
+
+        //////////////////////////////////
+        //
+        //  ボタンの表示・非表示
+        //
+        //////////////////////////////////
+        //if (scrollTop > (startPosition.top - windowHeight + toTopButtonBottom + 500)) {
+        if (scrollTop > asideMainHeight - windowHeight + 300) {
+            $toTopButton.fadeIn(300);
+        } else {
+            $toTopButton.fadeOut(300);
+        }
+
+        //////////////////////////////////
+        //
+        //  ボタンがフッターにかぶらない処理
+        //
+        //////////////////////////////////
+
+        //オススメ記事がある場合paddomg分を調整する
+        if ($('.other_article_list_area').height()) {
+            recommendHeight = recommendHeight + 40;
+        }
+
+        if (scrollTop > (documentHeight - footerHeight - windowHeight - recommendHeight)) {
+            $toTopButton.css({
+                'bottom': (scrollTop - (documentHeight - footerHeight - windowHeight - btn_totop_bottom - recommendHeight)) + 'px',
+                'padding-bottom': 10 + btn_totop_bottom + 'px',
+            });
+        }else {
+            $toTopButton.css({
+                'bottom': btn_totop_bottom + 'px',
+                'padding-bottom': '0px'
+            });
+        }
+
+        return null;
+    };
+    $(window).scroll(scrollPageTopButton);
+})(jQuery);
+
+/*********************
+ * 記事保存後、SNSシェアを促すバーを表示するための#パラメータの読み込みと処理の分岐
+ *******************/
+
+jQuery(function($){
+
+    var hash = location.hash.match(/^#article_saved:(\d+);(\w+);(\w+);(?:(\w+);)?/);
+
+    if(hash === null){
+        return;
+    }
+
+    if (hash[4] === "confirm") {
+        // 未実装：ミドルエンドからの記事投稿時プレビューモード
+    }
+
+    if ((hash[2] === "summoned") && (hash[3] === "passed")) {
+        //SNSシェアバーを出す
+        after_posting_container_open();
+        //投稿後は、スクロール後に表示される上部スライドエリアを表示させない
+        jQuery('.notice_container').remove();
+    } else {
+        //"保存しました。"
+        // @TODO:未来記事で「yyyy/mm/dd hh:mm:ss 公開予定で保存しました。」
+    }
+
+    location.hash = "-";
+
+});
+
+
+
+
+/********
+close_btn押下の処理
+********/
+
+jQuery(document).ready(function(){
+    //×ボタン
+    jQuery('.after_posting_container .close_btn_area .close_btn').click(function(){
+        after_posting_container_close();
+    });
+    //通知メッセージエリア
+    jQuery('.after_posting_container .after_posting_container_bg').click(function(){
+        after_posting_container_close();
+    });
+
+});
+
+/********
+シェアバーの表示・非表示のアクション
+********/
+
+function after_posting_container_close() {
+    jQuery('.after_posting_container').animate( { opacity: 'hide',}, { duration: 1000, easing: 'swing', } );
+}
+
+function after_posting_container_open() {
+    jQuery('.after_posting_container').animate( { opacity: 'show',}, { duration: 1000, easing: 'swing', } );
+}

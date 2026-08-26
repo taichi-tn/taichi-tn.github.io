@@ -1,0 +1,786 @@
+jQuery.noConflict();
+
+
+
+jQuery(document).ready(function($){
+
+    // DOMのクラス名
+    var class_post_parameter = 'post_tags_parameter';       // api叩くために必要なパラメータを属性値として格納しているDOM
+    var class_change_edit_btn = 'tag_edit_btn';             // タグ編集モードを始めるリンクorボタン
+    var class_button = 'button';                            // ボタン
+    var class_is_owner = 'owner';                           // 記事の著者であれば、このクラスがulに付いている
+
+    var class_tag_list = 'tag_list';                        // タグ一覧のul
+    var class_tag_text = 'tag_text';                        // タグ本文をラップしているspan
+    var class_tag_editing = 'tag_editing';                  // 編集中のタグ
+    var class_tag_response_waiting = 'tag_response_waiting'; // タグを編集してapiからの応答待ち
+    var class_use_nico_dictionary = 'use_nico_dictionary';  // ニコニコ大百科を使うかどうか
+    var class_nico_dictionary_link = 'dic';                 // ニコニコ大百科リンクをラップしているspan
+    var class_disable = 'disable';                           // ニコニコ大百科が有効でないことを示すクラス
+    var class_tag_operate_wrap = 'ope_tag';                 // 編集モードの際の、ロック・アンロック・削除が固まっている部分
+    var class_tag_edit_container = 'tagControlContainer';   // 大百科リンクとタグ操作アイコンがいっしょくたになってる部分
+    var class_tag_locked = 'tag_lock';                      // タグロック中ステータスアイコンをラップしているspan
+    var class_tag_unlocked = 'tag_unlock';	                // タグアンロック中ステータスアイコンをラップしているspan
+    var class_tag_delete_btn = 'tag_delete';                // タグ削除アイコンをラップしているspan
+    var class_tag_change_lock = 'tag_change_lock';          // タグ操作中アイコンを表示するspan
+    var class_tag_change_lock_position = 'tag_change_lock_position';  // タグ操作中アイコンを表示するspanの親span
+    var class_lockable = 'lockable';                        // ロック・アンロックに関しては、このクラスがあればボタンが反応する
+
+    var class_recommend_tag_list = 'recommend_tag_list'; //上部バーのタグリストのul
+    var class_recommend_all_tag_close = 'all_tag_close'; //上部バーのタグリストのul
+
+    var class_form = 'tag_entry_area';                      // タグ追加エリア
+    var class_tag_add_area = 'tag_entry_input';             // タグ入力窓
+    var class_tag_add_btn = 'tag_entry_btn';                // タグ登録ボタン
+
+    var class_tag_add_message = 'tag_add_message';	        // 複数タグが登録できる文言表示しているspan
+    var class_tag_error = 'tag_error';	                    // タグでエラーが起こった場合に表示させるspanの集合
+
+    var attr_disabled = 'disabled';                           // DOMが有効でないことを示す属性
+
+    // 操作されるDOM
+    var $tag_post_parameter_div, $change_edit_btn, $exit_edit_btn, $tag_list, $tag_link_text, $nico_dictionary_link,
+        $tag_operation_container, $tag_locked, $tag_unlocked, $tag_delete_btn,
+        $form, $tag_add_area, $tag_add_btn, $recommend_tag_list, $recommend_all_tag_close,
+        $tag_error_group, $tag_add_message;
+
+    // api叩くときに必要なコマンド共通POST変数
+    var channel_id, content_id, token, time;
+
+    // 記事のスクリーンネーム
+    var screen_name;
+
+    var cmd_add    = 'add';
+    var cmd_remove = 'remove';
+    var cmd_lock   = 'lock';
+    var cmd_unlock = 'unlock';
+    var cmd_tags   = 'tags';
+
+    var error_no_login              = 'no_login';
+    var error_duplicate               = 'duplicate';
+    var error_tag_length_over       = 'tag_length_over';
+    var error_tag_count_over        = 'tag_count_over';
+    var error_locked_tag_count_over = 'locked_tag_count_over';
+    var error_locked                = 'locked';
+    var error_400                   = '400';
+    var error_500                   = '500';
+
+    // 記事の著者によるアクセスかどうか
+    var is_owner_access = false;
+    var use_nico_dictionary = false;
+
+
+    ArticleTagController = {
+
+        /**
+         * 初期化。おもにイベント設定、DOMの変数設定、オーナーかどうかの判定、など。
+         */
+        init : function() {
+            // debug&&console.log("init()");
+            self = this;
+            self.reset_dom();
+
+            channel_id = $tag_post_parameter_div.attr('data-channel_id');
+            content_id = $tag_post_parameter_div.attr('data-content_id');
+            token = $tag_post_parameter_div.attr('data-token');
+            time = $tag_post_parameter_div.attr('data-time');
+            screen_name = $tag_post_parameter_div.attr('data-screen_name');
+
+            $change_edit_btn.on("click", this.changeTagEditMode);
+            $tag_add_btn.on("click", this.addTag);
+
+            $tag_list.on("click", self.addDot(class_tag_locked)+self.addDot(class_lockable), this.unlockTag);
+            $tag_list.on("click", self.addDot(class_tag_unlocked)+self.addDot(class_lockable), this.lockTag);
+            $tag_list.on("click", self.addDot(class_tag_delete_btn), this.removeTag);
+
+            $tag_add_area.on("keydown", function(event){
+                self.keyDownOnTagEntryInput(event);
+            });
+
+            if($tag_list.hasClass(class_is_owner)) {
+                is_owner_access = true;
+            }
+            if($tag_list.hasClass(class_use_nico_dictionary)) {
+                use_nico_dictionary = true;
+            }
+
+
+
+        },
+
+        /**
+         * DOMの変数化。タグ操作apiを叩くとDOMが変わるので、apiを叩く度にこの関数を呼ばれなければならない
+         */
+        reset_dom : function() {
+            // debug&&console.log("reset_dom()");
+            // 操作されるDOM
+            $tag_post_parameter_div =  $(self.addDot(class_post_parameter));
+            $change_edit_btn =         $(self.addDot(class_change_edit_btn)).find(self.addDot(class_button));
+            $tag_list =                $(self.addDot(class_tag_list));
+            $tag_link_text =           $(self.addDot(class_tag_text));
+            $nico_dictionary_link =    $(self.addDot(class_nico_dictionary_link));
+            $tag_operation_container = $(self.addDot(class_tag_operate_wrap));
+            $tag_locked =              $(self.addDot(class_tag_locked));
+            $tag_unlocked =            $(self.addDot(class_tag_unlocked));
+            $tag_delete_btn =          $(self.addDot(class_tag_delete_btn));
+            $recommend_tag_list =        $(self.addDot(class_recommend_tag_list));
+            $recommend_all_tag_close = $recommend_tag_list.find(self.addDot(class_recommend_all_tag_close));
+            $form =                    $(self.addDot(class_form));
+            $tag_add_area =            $('input:text').filter(self.addDot(class_tag_add_area));
+            $tag_add_btn =             $(self.addDot(class_tag_add_btn));
+            $tag_error_group =         $(self.addDot(class_tag_error));
+            $tag_add_message =         $(self.addDot(class_tag_add_message));
+        },
+
+        /**
+         * タグ編集モードに切り替える
+         */
+        changeTagEditMode : function(){
+            // debug&&console.log("changeTagEditMode()");
+
+            if($change_edit_btn.hasClass('selected')) {
+                // 編集モード → 通常モード
+                $change_edit_btn.removeClass('selected');
+                $('.post_tags_parameter').removeClass('edit');
+                $('.post_tags_parameter').addClass('default');
+
+                $tag_add_message.show();
+
+                self.attachTagLinkHref();
+                $tag_link_text.removeClass(class_tag_editing);
+
+                //IE8はアニメションさせない
+                if(jQuery.browser.msie && parseInt(jQuery.browser.version) == 8){
+                    $form.toggle();
+                } else {
+                    $form.hide(500);
+                }
+                $(".ope_tag").hide();
+                $tag_operation_container.hide(500);
+
+                //タグのエリアのHTMLを取得
+                var tag_list_area = $("ul.tag_list").html();
+                //タグが0件の場合は、ボタンの文字要素を変更する。
+                if(tag_list_area){
+                    $(".tag_edit_btn .button").html("タグを編集");
+                } else {
+                    $(".tag_edit_btn .button").html("タグを追加");
+                }
+                if(use_nico_dictionary) {
+                    $nico_dictionary_link.animate({opacity: "show", top: "-50"}, "slow");
+                }
+
+            } else {
+                // 通常モード → 編集モード
+                $change_edit_btn.addClass('selected');
+                $('.post_tags_parameter').removeClass('default');
+                $('.post_tags_parameter').addClass('edit');
+
+                //IE8はアニメションさせない
+                if(jQuery.browser.msie && parseInt(jQuery.browser.version) == 8){
+                    $form.toggle(0, function(){
+                        $tag_add_area.focus();
+                    });
+                } else {
+                    $form.show(500, function(){
+                        $tag_add_area.focus();
+                    });
+                }
+
+                $(".tag_edit_btn .button").html("編集を終了");
+                self.controlTag(null, cmd_tags);
+                $tag_add_area.val('');
+            }
+        },
+
+        /**
+         * タグを追加する
+         */
+        addTag : function() {
+            // debug&&console.log("addTag()");
+            $tag_submitted = $tag_add_area.val();
+            self.controlTag(null, cmd_add, $tag_submitted);
+        },
+
+        /**
+         * タグを削除する
+         */
+        removeTag : function() {
+            // debug&&console.log("removeTag()");
+            var tag_text = self.getTagText(this);
+            var tag_id = self.getTagId(this);
+
+            // ロックタグを削除する際は確認ダイアログを出す
+            var owner_lock = self.getOwnerLock(this);
+            if(owner_lock == 1 && !window.confirm('このタグはロックされていますが、削除しますか?')){
+                return;
+            }
+
+            self.controlTag(this, cmd_remove, tag_text, tag_id);
+        },
+
+        /**
+         * タグをロックする
+         */
+        lockTag : function() {
+            // debug&&console.log("lockTag()");
+            var tag_text = self.getTagText(this);
+            var tag_id = self.getTagId(this);
+            var owner_lock = self.getOwnerLock(this);
+
+            if(is_owner_access === true) {
+                self.controlTag(this, cmd_lock, tag_text, tag_id, owner_lock);
+            }
+        },
+
+        /**
+         * タグロックを解除する
+         */
+        unlockTag : function() {
+            // debug&&console.log("unlockTag()");
+            var tag_text = self.getTagText(this);
+            var tag_id = self.getTagId(this);
+            var owner_lock = self.getOwnerLock(this);
+
+            if(is_owner_access === true) {
+                self.controlTag(this, cmd_unlock, tag_text, tag_id, owner_lock);
+            }
+        },
+
+        /**
+         * 削除・ロック操作をするタグのテキストを取得する
+         *
+         * div: イベント発生元DOM（大体の場合は削除・ロック・ロック解除のボタン）
+         */
+        getTagText : function(div) {
+            // debug&&console.log("getTagText()");
+            var tag_text = $(div).closest('li').children(self.addDot(class_tag_text)).text();
+            return tag_text;
+        },
+
+        /*
+         * 削除・ロック操作をするタグのIDを取得する
+         *
+         * div: イベント発生元DOM（大体の場合は削除・ロック・ロック解除のボタン）
+         */
+        getTagId : function(div) {
+            // debug&&console.log("getTagId()");
+            var tag_id = $(div).closest('li').attr('data-tag_id');
+            return tag_id;
+        },
+
+        /**
+         * 削除・ロック操作をするタグのロック状態を取得する
+         *
+         * div: イベント発生元DOM（大体の場合は削除・ロック・ロック解除のボタン）
+         */
+        getOwnerLock : function(div) {
+            // debug&&console.log("getOwnerLock()");
+            var owner_lock = $(div).closest('li').attr('data-owner_lock');
+            return owner_lock;
+        },
+
+        /**
+         * タグapiを叩く前に、入力された内容のバリデーションを行う
+         */
+        validateInput : function(cmd) {
+            // ロックするとき
+            if(cmd === cmd_lock) {
+                // 記事の著者しかロックできない
+                if(is_owner_access === false) {
+                    self.showErrorByCode(error_400);
+                    return false;
+                }
+
+                // ロックタグは5つまで
+                if(self.countLockTag() >= 5) {
+                    self.showErrorByCode(error_locked_tag_count_over);
+                    return false;
+                }
+            }
+            // アンロックするとき
+            else if(cmd === cmd_unlock) {
+                // 記事の著者しかアンロックできない
+                if(is_owner_access === false) {
+                    self.showErrorByCode(error_400);
+                    return false;
+                }
+            }
+
+            return true;
+        },
+
+        /**
+         * 送信しようとしているタグが、現在のDOM上に既に登録されていないか判定する
+         * 注：DB上ではなく、現在のDOM上
+         */
+        getAddDuplicateTag : function(input_string) {
+            // 追加しようとしているタグを配列化
+            input_string = $.trim(input_string);
+            var tags_adding = input_string.split(/[\s]+/g);
+            // 現在のDOM上にあるタグを取得
+            var tags_now = $tag_list.find(self.addDot(class_tag_text));
+
+            // 現在のタグ毎に判定　被っているタグを配列に入れる
+            duplicate_tags = new Array();
+            $.each(tags_now, function(){
+                var exist_tag = $(this).text();
+                if($.inArray(exist_tag, tags_adding) !== -1){
+                    duplicate_tags.push(exist_tag);
+                }
+            });
+            return duplicate_tags;
+        },
+
+        /**
+         * タグの数を数える
+         */
+        countTag : function() {
+            return $tag_list.children().length;
+        },
+
+        /**
+         * ロックタグの数を数える
+         */
+        countLockTag : function() {
+            return $tag_locked.length;
+        },
+
+        /**
+         * タグ操作のためのapiを叩く
+         */
+        controlTag : function(div, cmd, tag, tag_id, owner_lock) {
+            // debug&&console.log("controlTag()");
+
+            // 必須POST変数
+            postData = {
+                "channel_id" : channel_id,
+                "article_id" : content_id,
+                "res_type" : "json",
+                "cmd" : cmd,
+                "token" : token,
+                "time" : time
+            };
+
+            // コマンドによって必須ではないPOST変数
+            if(typeof tag !== 'undefined')
+                postData['tag'] = tag;
+            if(typeof tag_id !== 'undefined')
+                postData['id'] = tag_id;
+            if(typeof owner_lock !== 'undefined')
+                postData['owner_lock'] = owner_lock;
+
+            // バリデーション
+            if(self.validateInput(cmd) === false) {
+                return false;
+            }
+
+            // 重複タグを取得する
+            var duplicate_tags = new Array();
+            if(cmd === "add") {
+                duplicate_tags = self.getAddDuplicateTag(tag);
+            }
+
+            // ロック・アンロック・削除時には、処理中のぐるぐる画像を出す
+            if(cmd === cmd_lock || cmd === cmd_unlock || cmd === cmd_remove) {
+                self.changeIconForChangeTag(div);
+            }
+
+            // タグ操作部分を無効にする
+            if(cmd !== cmd_tags)
+                self.setEnabledTagOperate(false);
+
+            // api送信
+            $.ajax({
+                url: window.location.protocol + '//' + window.location.host + '/api/blomaga/edit.tag',
+                dataType: 'json',
+                data: postData,
+                type: 'POST',
+                success: function(data){
+                    if(data.status === "ok") {
+                        // エラー文言を消し、もともとエラーの部分に表示していた文言を再度表示させる
+                        $tag_error_group.hide();
+                        $(".tag_entry_msg").removeClass("error");
+                        $tag_add_message.show();
+
+                        self.updateTag(data.tags);
+                        self.updateTagForRecommend(data.tags);
+                        self.reset_dom();
+                        self.setEnabledTagOperate(true);
+                        // タグ追加の成功時、
+                        // 重複タグのエラーメッセージを出しつつ、タグ入力窓を空にする
+                        if(cmd === 'add') {
+                            self.showTagDuplicateError(duplicate_tags, '');
+                            $tag_add_area.val('');
+                        }
+                    }
+                },
+
+                error: function(XMLHttpRequest, textStatus, errorThrown){
+                    var response = $.parseJSON(XMLHttpRequest.responseText);
+                    $tag_error_group.hide();
+                    self.updateTag(response.tags);
+                    self.reset_dom();
+                    self.setEnabledTagOperate(true);
+                    // タグ追加に失敗したときは、追加に失敗したタグを入力窓に入れてあげつつ、
+                    // 重複タグがある場合にはエラー表示する
+                    if(cmd === cmd_add) {
+                        self.showTagDuplicateError(duplicate_tags, response.error_tags);
+                        $tag_add_area.val(response.error_tags);
+                    }
+                    // ロック・アンロック・削除時の、処理中ぐるぐる画像を消す
+                    if(cmd === cmd_lock || cmd === cmd_unlock || cmd === cmd_remove) {
+                        self.changeIconForChangeTag(div, true);
+                    }
+                    $(".tag_entry_msg").addClass("error");
+                    // エラー文言表示
+                    self.showErrorByJson(response.error);
+
+                },
+
+                complete: function(){
+                    // 処理完了時はタグ入力ウインドウにカーソルをフォーカスさせる
+                    $tag_add_area.focus();
+                }
+            });
+        },
+
+        /**
+         * タグを操作するボタンやリンクを無効にします
+         */
+        setEnabledTagOperate : function(is_enabled){
+            if(is_enabled === true) {
+                $tag_add_area.removeAttr(attr_disabled);
+                $tag_add_btn.removeAttr(attr_disabled);
+            } else {
+                $tag_add_area.attr(attr_disabled, attr_disabled);
+                $tag_add_btn.attr(attr_disabled, attr_disabled);
+            }
+        },
+
+        /**
+         * タグ一覧を更新する
+         *
+         * tags: APIレスポンス内のタグ一覧データ
+         */
+        updateTag : function(tags) {
+            // debug&&console.log("updateTag()");
+            if(tags == null) {
+                return;
+            }
+            $tag_list.empty();
+
+            // TODO apiのレスポンスの形式が不安定。一旦jsで吸収するが、後々api側に対応してもらいましょう。
+            if(tags.length === 0) {
+                // タグが何もなかった場合
+            }
+            else if(tags.length === undefined ) {
+                // レスポンスがObjectで返ってきた場合
+                for(var i in tags) {
+                    var id = tags[i].id;
+                    var string_tag = tags[i].tag;
+                    var owner_lock = tags[i].owner_lock;
+
+                    var tag_dom = self.createTag(id, string_tag, owner_lock);
+                    $tag_list.append(tag_dom);
+                }
+            } else {
+                // レスポンスが配列で返ってきた場合
+                for(var i=0; i<tags.length; i++) {
+                    var id = tags[i].id;
+                    var string_tag = tags[i].tag;
+                    var owner_lock = tags[i].owner_lock;
+
+                    var tag_dom = self.createTag(id, string_tag, owner_lock);
+                    $tag_list.append(tag_dom);
+                }
+            }
+        },
+
+        /**
+         * タグのDOMを生成する
+         *
+         * id: タグのID
+         * string_tag: タグ本文
+         * owner_lock: ロック状態
+         */
+        createTag : function(id, string_tag, owner_lock) {
+            // debug&&console.log("createTag()");
+            // ベースのDOM
+            var $tag_tmp = $('<li></li>');
+            $tag_tmp.attr('class', "tag_id_" + id);
+            $tag_tmp.attr('data-owner_lock', owner_lock);
+            $tag_tmp.attr('data-tag_id', id);
+
+            // タグのテキストのDOM
+            var $tag_text_tmp = $('<a></a>');
+            $tag_text_tmp.addClass(class_tag_text);
+            $tag_text_tmp.addClass(class_tag_editing);
+            $tag_text_tmp.text(string_tag);
+
+            // 編集部分のベースのDOM
+            var $tag_edit_container_tmp = $('<span></span>');
+            $tag_edit_container_tmp.addClass(class_tag_edit_container);
+            $tag_edit_container_tmp.addClass("tagControlContainer_id_" + id);
+
+            var $tag_dictionary_wrap_tmp = $('<span></span>');
+            $tag_dictionary_wrap_tmp.addClass(class_nico_dictionary_link);
+            $tag_dictionary_wrap_tmp.css('display', 'none');
+            var $tag_operation_wrap_tmp = $('<span></span>');
+            $tag_operation_wrap_tmp.addClass(class_tag_operate_wrap);
+
+
+            // ニコニコ大百科部分のDOM
+            var $tag_dictionary_link_tmp = $('<a></a>');
+            $tag_dictionary_link_tmp.attr('target', '_blank');
+            $tag_dictionary_link_tmp.attr('href', 'http://dic.nicovideo.jp/a/' + string_tag);
+            var $tag_dictionary_span_tmp = $('<span></span>');
+            $tag_dictionary_span_tmp.addClass(class_disable);
+
+
+            // タグロック部分のDOM
+            var $tag_lock_link_tmp;
+            // 記事オーナーがアクセスした場合にはロックボタンを押せるのでa
+            // それ以外のユーザーがアクセスした場合には、ロックボタンではなくロックアイコンを表示させるのでspan
+            if(is_owner_access === true){
+                $tag_lock_link_tmp = $('<a></a>');
+            } else {
+                $tag_lock_link_tmp = $('<span></span>');
+            }
+            var $tag_lock_span_tmp = $('<span></span>');
+            if(owner_lock==='1' || owner_lock===1) {
+                $tag_lock_span_tmp.addClass(class_tag_locked);
+                $tag_lock_span_tmp.attr('title', 'ロック中');
+                if(is_owner_access === true) {
+                    $tag_lock_span_tmp.addClass(class_lockable);
+                }
+            } else if(owner_lock==='0' || owner_lock===0) {
+                $tag_lock_span_tmp.addClass(class_tag_unlocked);
+                $tag_lock_span_tmp.addClass(class_lockable);
+                $tag_lock_span_tmp.attr('title', 'ロックされていません');
+            } else {
+
+            }
+
+            // タグ削除部分のDOM
+            if(is_owner_access===true || owner_lock==='0' || owner_lock===0 ) {
+                var $tag_delete_link_tmp = $('<a></a>');
+                var $tag_delete_span_tmp = $('<span></span>');
+                $tag_delete_span_tmp.addClass(class_tag_delete_btn);
+                $tag_delete_span_tmp.attr('title', '削除');
+            }
+
+            // タグを削除・ロック・アンロックした時に、処理中であることを示すぐるぐる
+            var $tag_changing_parent_span_tmp = $('<span></span>');
+            var $tag_changing_span_tmp = $('<span></span>');
+            $tag_changing_parent_span_tmp.addClass(class_tag_change_lock_position);
+            $tag_changing_span_tmp.addClass(class_tag_change_lock);
+
+
+            // DOMを結合
+            $tag_tmp.append($tag_text_tmp);
+            $tag_tmp.append($tag_edit_container_tmp);
+            if(use_nico_dictionary){
+                $tag_edit_container_tmp.append($tag_dictionary_wrap_tmp);
+                $tag_dictionary_wrap_tmp.append($tag_dictionary_link_tmp);
+                $tag_dictionary_link_tmp.append($tag_dictionary_span_tmp);
+            }
+
+            $tag_edit_container_tmp.append($tag_operation_wrap_tmp);
+            if(is_owner_access===true || (owner_lock==='1' || owner_lock===1)) {
+                $tag_operation_wrap_tmp.append($tag_lock_link_tmp);
+                $tag_lock_link_tmp.append($tag_lock_span_tmp);
+            }
+            if(is_owner_access===true || owner_lock==='0' || owner_lock===0) {
+                $tag_operation_wrap_tmp.append($tag_delete_link_tmp);
+                $tag_delete_link_tmp.append($tag_delete_span_tmp);
+            }
+
+            $tag_operation_wrap_tmp.append($tag_changing_parent_span_tmp);
+            $tag_changing_parent_span_tmp.append($tag_changing_span_tmp);
+            $tag_changing_span_tmp.css("display", "none");
+
+            return $tag_tmp;
+        },
+
+        /**
+         * レコメンド枠(?)タグ一覧を更新する
+         *
+         * tags: APIレスポンス内のタグ一覧データ
+         */
+        updateTagForRecommend : function(tags) {
+            // debug&&console.log("updateTag()");
+            if(tags == null) {
+                self.showRecommendTagViewButton();
+                return;
+            }
+
+            // 既に入っているレコメンド枠のタグを消す
+            $recommend_tag_list_items = $recommend_tag_list.find('li').has('a').has(self.addDot(class_tag_text));
+            $recommend_tag_list_items.remove();
+            // TODO apiのレスポンスの形式が不安定。一旦jsで吸収するが、後々api側に対応してもらいましょう。
+            if(tags.length === 0) {
+                // タグが何もなかった場合
+            }
+            else if(tags.length === undefined ) {
+                // レスポンスがObjectで返ってきた場合
+                for(var i in tags) {
+                    var string_tag = tags[i].tag;
+                    var $tag_dom = self.createTagForRecommend(string_tag);
+                    $recommend_all_tag_close.before($tag_dom);
+                }
+            } else {
+                // レスポンスが配列で返ってきた場合
+                for(var i=0; i<tags.length; i++) {
+                    var string_tag = tags[i].tag;
+                    var $tag_dom = self.createTagForRecommend(string_tag);
+                    $recommend_all_tag_close.before($tag_dom);
+                }
+            }
+            self.showRecommendTagViewButton();
+        },
+
+        /**
+         * article.jsにある、レコメンド枠のタグの表示調整ボタンの出し分け関数(1477行目付近 2013/04/17)を呼ぶ
+         */
+        showRecommendTagViewButton : function() {
+            notice_container_tag_list_check(self.countTag());
+        },
+
+        /**
+         * レコメンド枠専用のタグのDOMを生成する
+         *
+         * string_tag: タグ本文
+         */
+        createTagForRecommend : function(string_tag) {
+            // debug&&console.log("createTag()");
+            // ベースのDOM
+            var $tag_tmp = $('<li></li>');
+
+            // タグのテキストのDOM
+            var $tag_text_tmp = $('<a></a>');
+            $tag_text_tmp.addClass(class_tag_text);
+            var url = window.location.protocol + '//' + window.location.host + '/search/' + string_tag + '?type=article';
+            url = encodeURI(url);
+            $tag_text_tmp.attr('href', url);
+            $tag_text_tmp.text(' ' + string_tag + ' ');
+
+            // DOMを結合
+            $tag_tmp.append($tag_text_tmp);
+            return $tag_tmp;
+        },
+
+        /**
+         * タグ編集モードを解除する際、タグにタグ検索ページヘのリンクを付加する
+         */
+        attachTagLinkHref : function() {
+            $.each($tag_link_text, function(){
+                var tag_text = $(this).text();
+                tag_text = $.trim(tag_text);
+                var url = window.location.protocol + '//' + window.location.host + '/search/' + tag_text + '?type=article'
+                url = encodeURI(url);
+                $(this).attr('href', url);
+            });
+        },
+
+        /**
+         * 重複タグのエラー表示をする。
+         *
+         * apiを叩く前にDOM上で重複しているタグが、
+         * apiを叩いた後に、一つでもDBに登録されているのであれば、
+         * エラーメッセージを出す。
+         *
+         * @param duplicate_tags_array : apiを叩く前に判定した、重複タグ
+         * @param add_fail_tags_string : apiを叩いて、追加できなかったタグのstring(複数ある場合はスペースで区切られている)
+         */
+        showTagDuplicateError: function(duplicate_tags_array, add_fail_tags_string) {
+            if(duplicate_tags_array === null || duplicate_tags_array.length < 1 ) {
+                //重複タグが存在しないのであれば、エラーメッセージは表示しない
+                return;
+            }
+            // 追加できなかったタグの文字列を配列に分解する
+            add_fail_tags_string = $.trim(add_fail_tags_string);
+            add_fail_tags_array = add_fail_tags_string.split(/[\s]+/g);
+
+            // 判定
+            for(var i=0; i<duplicate_tags_array.length; i++) {
+                if($.inArray(duplicate_tags_array[i], add_fail_tags_array) === -1) {
+                    self.showErrorByCode(error_duplicate);
+                }
+            }
+        },
+
+        /**
+         * APIから返ってきたエラーコードに応じて、エラー通知DIVを表示させる
+         */
+        showErrorByJson : function(error) {
+
+            if(error.length === undefined ) {
+                // jsonレスポンスがObjectで返ってきた場合（ "error" : {"code" : "hogehoge"} ）
+                self.showErrorByCode(error.code);
+            } else {
+                // jsonレスポンスが配列で返ってきた場合（ "error" : [{"code" : "hogehoge"}] ）
+                for(var i=0; i<error.length; i++) {
+                    self.showErrorByCode(error[i].code);
+                }
+
+            }
+        },
+
+        /*
+         * エラーコードに応じて、エラー通知DIVを表示させる
+         */
+        showErrorByCode : function(code) {
+            // エラー表示の際は、複数タグが登録可能であることを説明する文言を消す。
+            $tag_add_message.hide();
+            var error_class = self.addDot(self.addPrefixTagError(code));
+            $(error_class).show();
+        },
+
+        /**
+         * タグを ロック・アンロック・デリート したときにタグのアイコンをspinnerにするor元に戻す
+         */
+        changeIconForChangeTag : function(div, back) {
+            $parent = $(div).closest(self.addDot(class_tag_edit_container));
+            if(back==true) {
+                $parent.removeClass(class_tag_response_waiting);
+                $parent.find(self.addDot(class_tag_change_lock)).hide();
+            } else {
+                $parent.addClass(class_tag_response_waiting);
+                $parent.find(self.addDot(class_tag_change_lock)).show();
+            }
+        },
+
+        /**
+         * タグ編集窓でENTERキーを押したらタグ追加APIが走るようにする対応
+         */
+        keyDownOnTagEntryInput : function(event) {
+            if(event.keyCode==13){
+                self.addTag();
+            }
+            return false;
+        },
+
+        /**
+         * jQueryでクラス名を指定する際に、頭に . が必要なので、
+         * それをくっつける関数
+         */
+        addDot : function(string) {
+            return '.' + string;
+        },
+
+        /**
+         * エラーコードを元に、エラー表示用のDIVのクラス名を返す。
+         * @param string エラーコード
+         * @returns string
+         */
+        addPrefixTagError : function(string) {
+            return 'tag_error_' + string;
+        }
+
+    };
+
+    ArticleTagController.init();
+    var self = ArticleTagController; //ie対応
+
+});
