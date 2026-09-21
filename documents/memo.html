@@ -1,0 +1,417 @@
+<!DOCTYPE html>
+<html lang="ja" class="h-full">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>メモ帳</title>
+    
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    colors: {
+                        appleBar: '#f5f5f7',
+                        appleBorder: '#e5e5ea',
+                        appleHover: '#e8e8ed'
+                    }
+                }
+            }
+        }
+    </script>
+    
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+JP:wght@400;500&display=swap" rel="stylesheet">
+
+    <style>
+        * {
+            font-family: -apple-system, BlinkMacSystemFont, "SF Pro Text", "SF Pro Display", "Hiragino Sans", "Hiragino Kaku Gothic ProN", "Noto Sans JP", sans-serif !important;
+            -webkit-font-smoothing: antialiased;
+            -moz-osx-font-smoothing: grayscale;
+            box-sizing: border-box !important;
+        }
+
+        html, body {
+            height: 100%;
+            margin: 0;
+            padding: 0;
+            overflow: hidden;
+            background-color: #ffffff;
+            color: #1d1d1f;
+        }
+
+        /* 入力用コンテナ：十分な余白（上下36px、左右48px）を確実に確保 */
+        .editor-container {
+            width: 100%;
+            height: calc(100vh - 42px);
+            padding: 12px 20px !important;
+            box-sizing: border-box !important;
+            background-color: #ffffff;
+        }
+
+        @media (max-width: 640px) {
+            .editor-container {
+                padding: 20px 20px !important;
+            }
+        }
+
+        textarea {
+            width: 100% !important;
+            height: 100% !important;
+            margin: 0 !important;
+            padding: 0 !important;
+            border: none !important;
+            outline: none !important;
+            resize: none !important;
+            background-color: transparent !important;
+            color: #1d1d1f !important;
+            line-height: 1.7 !important;
+            letter-spacing: -0.01em !important;
+            display: block !important;
+        }
+
+        textarea::-webkit-scrollbar {
+            width: 8px;
+        }
+        textarea::-webkit-scrollbar-track {
+            background: transparent;
+        }
+        textarea::-webkit-scrollbar-thumb {
+            background: #d1d1d6;
+            border-radius: 4px;
+        }
+        textarea::-webkit-scrollbar-thumb:hover {
+            background: #aeaeb2;
+        }
+
+        .status-dot-pulse {
+            animation: pulse 1.5s cubic-bezier(0.4, 0, 0.6, 1) infinite;
+        }
+        @keyframes pulse {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.3; }
+        }
+    </style>
+</head>
+<body class="flex flex-col h-full w-full">
+
+    <main class="flex-1 w-full overflow-hidden bg-white">
+        <div class="editor-container">
+            <textarea 
+                id="memo-input" 
+                class="text-base font-normal transition-all"
+                spellcheck="false"
+                autofocus
+            ></textarea>
+        </div>
+    </main>
+
+    <footer class="h-[42px] w-full bg-[#f5f5f7] border-t border-[#e5e5ea] flex items-center justify-between px-3 z-40 select-none text-[#1d1d1f] text-xs">
+        
+        <!-- 左側グループ: フォントサイズ変更, txtダウンロード, 保存ステータス -->
+        <div class="flex items-center space-x-2.5">
+            <!-- フォントサイズ調節 -->
+            <div class="flex items-center bg-white border border-[#d1d1d6] rounded-md px-1 py-0.5 shadow-sm">
+                <button id="btn-font-decrease" class="w-5 h-5 flex items-center justify-center text-[#515154] hover:text-[#1d1d1f] rounded hover:bg-[#f2f2f7] transition-colors" title="文字を小さく">
+                    <svg class="w-3 h-3" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+                        <line x1="5" y1="12" x2="19" y2="12"></line>
+                    </svg>
+                </button>
+                <span id="font-size-display" class="font-mono font-normal text-[#1d1d1f] w-9 text-center text-[11px]">18px</span>
+                <button id="btn-font-increase" class="w-5 h-5 flex items-center justify-center text-[#515154] hover:text-[#1d1d1f] rounded hover:bg-[#f2f2f7] transition-colors" title="文字を大きく">
+                    <svg class="w-3 h-3" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+                        <line x1="12" y1="5" x2="12" y2="19"></line>
+                        <line x1="5" y1="12" x2="19" y2="12"></line>
+                    </svg>
+                </button>
+            </div>
+
+            <div class="h-3.5 w-[1px] bg-[#d1d1d6]"></div>
+
+            <!-- txtファイルダウンロード -->
+            <button id="btn-download" class="flex items-center space-x-1.5 px-2.5 py-1 bg-white hover:bg-[#f2f2f7] border border-[#d1d1d6] text-[#1d1d1f] rounded-md shadow-sm transition-colors font-normal" title="txtファイルとしてダウンロード">
+                <svg class="w-3.5 h-3.5 text-[#007aff]" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+                    <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
+                    <polyline points="7 10 12 15 17 10"></polyline>
+                    <line x1="12" y1="15" x2="12" y2="3"></line>
+                </svg>
+                <span>.txt 保存</span>
+            </button>
+
+            <div class="h-3.5 w-[1px] bg-[#d1d1d6]"></div>
+
+            <!-- 保存ステータス表示 -->
+            <div id="status-badge" class="flex items-center space-x-1.5 px-1.5 py-0.5 font-normal text-[#8e8e93]">
+                <span id="status-icon" class="inline-block w-2 h-2 rounded-full bg-[#34c759]"></span>
+                <span id="status-text">保存完了</span>
+            </div>
+        </div>
+
+        <!-- 右側グループ: 枠なし普通字体の文字数表示, 全消去 -->
+        <div class="flex items-center space-x-2.5">
+            <!-- 枠なし文字数表示 (標準ウェイト) -->
+            <div class="flex items-center space-x-1.5 px-1 py-0.5 text-[#8e8e93] font-normal">
+                <span class="text-[#8e8e93] text-[11px]">文字数:</span>
+                <span id="char-count" class="font-normal text-[#1d1d1f]">0</span>
+            </div>
+
+            <div class="h-3.5 w-[1px] bg-[#d1d1d6]"></div>
+
+            <!-- 全消去ボタン -->
+            <button id="btn-clear" class="flex items-center space-x-1.5 px-2.5 py-1 bg-white hover:bg-[#ff3b30]/10 border border-[#ff3b30]/30 text-[#ff3b30] rounded-md shadow-sm font-normal transition-colors" title="メモを全消去">
+                <svg class="w-3.5 h-3.5 text-[#ff3b30]" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+                    <polyline points="3 6 5 6 21 6"></polyline>
+                    <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path>
+                </svg>
+                <span>全消去</span>
+            </button>
+        </div>
+    </footer>
+
+    <div id="toast" class="fixed top-4 left-1/2 -translate-x-1/2 bg-[#1d1d1f]/90 text-white backdrop-blur-md px-4 py-2 rounded-full shadow-lg text-xs font-normal opacity-0 pointer-events-none transition-all duration-200 transform -translate-y-2 z-50">
+        通知メッセージ
+    </div>
+
+    <!-- カスタム確認モーダル (全消去用) -->
+    <div id="confirm-modal" class="fixed inset-0 bg-black/20 backdrop-blur-sm flex items-center justify-center opacity-0 pointer-events-none transition-opacity duration-150 z-50">
+        <div class="bg-white/95 backdrop-blur-md rounded-2xl p-5 max-w-xs w-full mx-4 shadow-2xl border border-black/5 transform scale-95 transition-transform duration-150" id="modal-content">
+            <h3 class="text-base font-semibold text-[#1d1d1f] mb-1">メモを全消去しますか？</h3>
+            <p class="text-xs text-[#8e8e93] mb-5 leading-relaxed">この操作は取り消せません。保存済みのメモも完全に削除されます。</p>
+            <div class="flex justify-end gap-2 text-xs">
+                <button id="modal-cancel" class="px-3.5 py-1.5 font-normal text-[#8e8e93] hover:bg-[#f2f2f7] rounded-lg transition-colors">キャンセル</button>
+                <button id="modal-confirm" class="px-3.5 py-1.5 font-normal text-white bg-[#ff3b30] hover:bg-[#d70015] rounded-lg transition-colors shadow-sm">消去する</button>
+            </div>
+        </div>
+    </div>
+
+    <script type="module">
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js";
+        import { getDatabase, ref, set, get } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-database.js";
+
+        // Firebase 設定情報 (ご自身のFirebase Realtime Database設定に置き換えてください)
+        const firebaseConfig = {
+            apiKey: "AIzaSyBuU0l8CzxvUJshPljuAq5LLI8mCGG0f2g",
+            authDomain: "warehs.firebaseapp.com",
+          databaseURL: "https://warehs-default-rtdb.firebaseio.com",
+            projectId: "warehs",
+            storageBucket: "warehs.firebasestorage.app",
+            messagingSenderId: "351013737525",
+            appId: "1:351013737525:web:7d70dc58ab45e6a7b18d7c",
+        };
+
+        let db = null;
+
+        try {
+            if (firebaseConfig.apiKey !== "YOUR_API_KEY") {
+                const app = initializeApp(firebaseConfig);
+                db = getDatabase(app);
+            } else {
+                console.warn("[NotePad] Firebase設定が未入力です。ローカルストレージ（デモモード）で動作します。");
+            }
+        } catch (error) {
+            console.error("Firebase Initialization Error:", error);
+        }
+
+        const memoInput = document.getElementById('memo-input');
+        const charCount = document.getElementById('char-count');
+        const statusIcon = document.getElementById('status-icon');
+        const statusText = document.getElementById('status-text');
+        const fontSizeDisplay = document.getElementById('font-size-display');
+
+        let debounceTimer = null;
+        const DEBOUNCE_DELAY = 1000;
+
+        const STATUS = {
+            IDLE: { text: '保存完了', color: 'bg-[#34c759]', pulse: false },
+            TYPING: { text: '未保存の変更', color: 'bg-[#ff9500]', pulse: false },
+            SAVING: { text: '保存中...', color: 'bg-[#007aff]', pulse: true },
+            ERROR: { text: '保存エラー', color: 'bg-[#ff3b30]', pulse: false },
+            OFFLINE: { text: 'ローカル保存(デモ)', color: 'bg-[#8e8e93]', pulse: false }
+        };
+
+        function updateStatus(state) {
+            statusText.innerText = state.text;
+            statusIcon.className = `inline-block w-2 h-2 rounded-full ${state.color}`;
+            if (state.pulse) {
+                statusIcon.classList.add('status-dot-pulse');
+            } else {
+                statusIcon.classList.remove('status-dot-pulse');
+            }
+        }
+
+        function updateCounters() {
+            const text = memoInput.value;
+            charCount.innerText = text.length.toLocaleString();
+        }
+
+        // Realtime Database ルート `/` から `{ text: ... }` を取得
+        async function loadMemoFromDatabase() {
+            updateStatus(STATUS.SAVING);
+            
+            if (!db) {
+                const savedLocal = localStorage.getItem('apple_memo_demo');
+                if (savedLocal !== null) {
+                    memoInput.value = savedLocal;
+                }
+                updateCounters();
+                updateStatus(STATUS.OFFLINE);
+                return;
+            }
+
+            try {
+                const rootRef = ref(db, '/');
+                const snapshot = await get(rootRef);
+                
+                if (snapshot.exists()) {
+                    const data = snapshot.val();
+                    memoInput.value = (data && data.text !== undefined) ? data.text : '';
+                }
+                updateCounters();
+                updateStatus(STATUS.IDLE);
+            } catch (error) {
+                console.error("Error loading memo from RTDB root:", error);
+                updateStatus(STATUS.ERROR);
+            }
+        }
+
+        // Realtime Database ルート `/` に `{ text: content }` を1秒後自動保存
+        async function saveMemoToDatabase(content) {
+            updateStatus(STATUS.SAVING);
+
+            if (!db) {
+                localStorage.setItem('apple_memo_demo', content);
+                setTimeout(() => {
+                    updateStatus(STATUS.OFFLINE);
+                }, 200);
+                return;
+            }
+
+            try {
+                // 【重要】'text' ノードだけを直接指定して set します。
+                // ルート (/) ではなく '/text' にのみ書き込むため、
+                // Realtime Database内にある他のデータが削除されることは絶対にありません。
+                await set(ref(db, 'text'), content);
+                
+                lastSavedContent = content;
+                showStatus('保存完了', 'saved');
+              } catch (error) {
+                console.error('Firebase Save Error:', error);
+                showStatus('保存失敗', 'error');
+              }
+            }
+
+        function handleInput() {
+            updateCounters();
+            updateStatus(STATUS.TYPING);
+
+            clearTimeout(debounceTimer);
+
+            debounceTimer = setTimeout(() => {
+                const currentContent = memoInput.value;
+                saveMemoToDatabase(currentContent);
+            }, DEBOUNCE_DELAY);
+        }
+
+        const btnFontIncrease = document.getElementById('btn-font-increase');
+        const btnFontDecrease = document.getElementById('btn-font-decrease');
+        const btnDownload = document.getElementById('btn-download');
+        const btnClear = document.getElementById('btn-clear');
+        const toast = document.getElementById('toast');
+        
+        const confirmModal = document.getElementById('confirm-modal');
+        const modalContent = document.getElementById('modal-content');
+        const modalCancel = document.getElementById('modal-cancel');
+        const modalConfirm = document.getElementById('modal-confirm');
+
+        let currentFontSize = 18;
+
+        function updateFontSizeUI() {
+            memoInput.style.fontSize = `${currentFontSize}px`;
+            fontSizeDisplay.innerText = `${currentFontSize}px`;
+        }
+
+        btnFontIncrease.addEventListener('click', () => {
+            if (currentFontSize < 48) {
+                currentFontSize += 2;
+                updateFontSizeUI();
+            }
+        });
+
+        btnFontDecrease.addEventListener('click', () => {
+            if (currentFontSize > 12) {
+                currentFontSize -= 2;
+                updateFontSizeUI();
+            }
+        });
+
+        // 2026.09.21_17.09.28.txt 形式でダウンロード
+        btnDownload.addEventListener('click', () => {
+            const content = memoInput.value;
+            const blob = new Blob([content], { type: 'text/plain;charset=utf-8' });
+            const url = URL.createObjectURL(blob);
+            
+            const now = new Date();
+            const year = now.getFullYear();
+            const month = String(now.getMonth() + 1).padStart(2, '0');
+            const day = String(now.getDate()).padStart(2, '0');
+            const hours = String(now.getHours()).padStart(2, '0');
+            const minutes = String(now.getMinutes()).padStart(2, '0');
+            const seconds = String(now.getSeconds()).padStart(2, '0');
+            
+            const filename = `${year}.${month}.${day}_${hours}.${minutes}.${seconds}.txt`;
+            
+            const link = document.createElement('a');
+            link.href = url;
+            link.download = filename;
+            document.body.appendChild(link);
+            link.click();
+            document.body.removeChild(link);
+            URL.revokeObjectURL(url);
+
+            showToast(`${filename} を保存しました`);
+        });
+
+        function showToast(message) {
+            toast.innerText = message;
+            toast.classList.remove('opacity-0', '-translate-y-2', 'pointer-events-none');
+            toast.classList.add('opacity-100', 'translate-y-0');
+
+            setTimeout(() => {
+                toast.classList.remove('opacity-100', 'translate-y-0');
+                toast.classList.add('opacity-0', '-translate-y-2', 'pointer-events-none');
+            }, 2200);
+        }
+
+        btnClear.addEventListener('click', () => {
+            if (!memoInput.value) return;
+            confirmModal.classList.remove('opacity-0', 'pointer-events-none');
+            modalContent.classList.remove('scale-95');
+            modalContent.classList.add('scale-100');
+        });
+
+        function closeModal() {
+            confirmModal.classList.add('opacity-0', 'pointer-events-none');
+            modalContent.classList.remove('scale-100');
+            modalContent.classList.add('scale-95');
+        }
+
+        modalCancel.addEventListener('click', closeModal);
+
+        modalConfirm.addEventListener('click', () => {
+            memoInput.value = '';
+            updateCounters();
+            closeModal();
+            saveMemoToDatabase('');
+            showToast('すべてのテキストを消去しました');
+        });
+
+        memoInput.addEventListener('input', handleInput);
+
+        window.addEventListener('DOMContentLoaded', () => {
+            loadMemoFromDatabase();
+            updateFontSizeUI();
+        });
+    </script>
+</body>
+</html>
