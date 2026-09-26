@@ -3,6 +3,7 @@
 1,2022.04.05.html,hinatazaka46/2022.04.05.html
 1,2024.04.05.html,hinatazaka46/2024.04.05.html
 1,index.html,hinatazaka46/index.html
+0,icon.png,icon.png
 0,index.csv,index.csv
 0,index.html,index.html
 0,launch.html,launch.html
@@ -14,6 +15,11 @@
 2,📁 text,tax/hojin/text/
 3,index.csv,tax/hojin/text/index.csv
 3,index.html,tax/hojin/text/index.html
+1,📁 kokutyo,tax/kokutyo/
+2,index.html,tax/kokutyo/index.html
+2,📁 text,tax/kokutyo/text/
+3,index.csv,tax/kokutyo/text/index.csv
+3,index.html,tax/kokutyo/text/index.html
 1,logs.html,tax/logs.html
 1,📁 shohi,tax/shohi/
 2,index.html,tax/shohi/index.html
@@ -184,6 +190,7 @@
 3,2026.03.07.html,try/riotakeda/schit.net/2026.03.07.html
 3,2026.03.12.html,try/riotakeda/schit.net/2026.03.12.html
 3,2026.03.14.html,try/riotakeda/schit.net/2026.03.14.html
+2,県民だより令和8年7月号.pdf,try/riotakeda/県民だより令和8年7月号.pdf
 1,📁 ryunosuketokita,try/ryunosuketokita/
 2,📁 dailytry,try/ryunosuketokita/dailytry/
 3,📁 2024,try/ryunosuketokita/dailytry/2024/
@@ -212,6 +219,9 @@
 5,📁 31,try/syutarotanaka/dailytry/2026/3/31/
 6,1.html,try/syutarotanaka/dailytry/2026/3/31/1.html
 6,2.html,try/syutarotanaka/dailytry/2026/3/31/2.html
+1,📁 taigamatsui,try/taigamatsui/
+2,📁 gemini,try/taigamatsui/gemini/
+3,unknown.html,try/taigamatsui/gemini/unknown.html
 1,📁 yutasakai,try/yutasakai/
 2,📁 dailytry,try/yutasakai/dailytry/
 3,📁 2024,try/yutasakai/dailytry/2024/
