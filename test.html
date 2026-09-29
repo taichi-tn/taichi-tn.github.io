@@ -21,10 +21,10 @@
     </script>
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+JP:wght@400;500&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Segoe+UI:ital,wght@0,400;0,600;1,400&display=swap" rel="stylesheet">
     <style>
         * {
-            font-family: -apple-system, BlinkMacSystemFont, "SF Pro Text", "SF Pro Display", "Hiragino Sans", "Hiragino Kaku Gothic ProN", "Noto Sans JP", sans-serif !important;
+            font-family: "Segoe UI", -apple-system, BlinkMacSystemFont, "Hiragino Sans", "Hiragino Kaku Gothic ProN", "Noto Sans JP", sans-serif !important;
             -webkit-font-smoothing: antialiased;
             -moz-osx-font-smoothing: grayscale;
             box-sizing: border-box !important;
@@ -114,8 +114,8 @@
                 </button>
             </div>
             <div class="h-3.5 w-[1px] bg-[#d1d1d6]"></div>
-            <!-- txtファイルダウンロード -->
-            <button id="btn-download" class="flex items-center space-x-1.5 px-2.5 py-1 bg-white hover:bg-[#f2f2f7] border border-[#d1d1d6] text-[#1d1d1f] rounded-md shadow-sm transition-colors font-normal" title="txtファイルとしてダウンロード">
+            <!-- txtファイルダウンロード (Ctrl+S) -->
+            <button id="btn-download" class="flex items-center space-x-1.5 px-2.5 py-1 bg-white hover:bg-[#f2f2f7] border border-[#d1d1d6] text-[#1d1d1f] rounded-md shadow-sm transition-colors font-normal" title="txtファイルとしてダウンロード (Ctrl+S)">
                 <svg class="w-3.5 h-3.5 text-[#007aff]" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
                     <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
                     <polyline points="7 10 12 15 17 10"></polyline>
@@ -232,7 +232,6 @@
 
         // データの読み込み
         async function loadMemo() {
-            // トグルの保存状態を復元
             const savedSyncPref = localStorage.getItem('apple_memo_sync_enabled');
             if (savedSyncPref !== null) {
                 syncToggle.checked = (savedSyncPref === 'true');
@@ -269,11 +268,8 @@
         // データの保存
         async function saveMemo(content) {
             const isSyncEnabled = syncToggle.checked;
-            
-            // ローカルストレージへは常にキャッシュ保存
             localStorage.setItem('apple_memo_demo', content);
 
-            // トグルがOFFまたはDBが初期化されていない場合
             if (!isSyncEnabled || !db) {
                 updateStatus(STATUS.OFFLINE);
                 return;
@@ -299,6 +295,46 @@
             }, DEBOUNCE_DELAY);
         }
 
+        // txtダウンロード実行処理
+        function downloadTxt() {
+            const content = memoInput.value;
+            const blob = new Blob([content], { type: 'text/plain;charset=utf-8' });
+            const url = URL.createObjectURL(blob);
+            const now = new Date();
+            const year = now.getFullYear();
+            const month = String(now.getMonth() + 1).padStart(2, '0');
+            const day = String(now.getDate()).padStart(2, '0');
+            const hours = String(now.getHours()).padStart(2, '0');
+            const minutes = String(now.getMinutes()).padStart(2, '0');
+            const seconds = String(now.getSeconds()).padStart(2, '0');
+            const filename = `${year}.${month}.${day}_${hours}.${minutes}.${seconds}.txt`;
+            const link = document.createElement('a');
+            link.href = url;
+            link.download = filename;
+            document.body.appendChild(link);
+            link.click();
+            document.body.removeChild(link);
+            URL.revokeObjectURL(url);
+            showToast(`${filename} を保存しました`);
+        }
+
+        // 全コピー処理
+        async function copyAllText() {
+            if (!memoInput.value) {
+                showToast('コピーするテキストがありません');
+                return;
+            }
+            try {
+                await navigator.clipboard.writeText(memoInput.value);
+                showToast('すべてのテキストをコピーしました');
+            } catch (err) {
+                // Clipboard API非対応時のフォールバック
+                memoInput.select();
+                document.execCommand('copy');
+                showToast('すべてのテキストをコピーしました');
+            }
+        }
+
         // トグル切り替えイベント
         syncToggle.addEventListener('change', () => {
             const isChecked = syncToggle.checked;
@@ -309,6 +345,23 @@
             } else {
                 showToast('DB自動同期：OFF');
                 updateStatus(STATUS.OFFLINE);
+            }
+        });
+
+        // ショートカットキーの設定 (Ctrl+S / Ctrl+Shift+C)
+        window.addEventListener('keydown', (e) => {
+            const isCmdOrCtrl = e.ctrlKey || e.metaKey;
+
+            // Ctrl + S (txt保存)
+            if (isCmdOrCtrl && e.key.toLowerCase() === 's') {
+                e.preventDefault();
+                downloadTxt();
+            }
+
+            // Ctrl + Shift + C (全コピー)
+            if (isCmdOrCtrl && e.shiftKey && e.key.toLowerCase() === 'c') {
+                e.preventDefault();
+                copyAllText();
             }
         });
 
@@ -343,27 +396,7 @@
             }
         });
 
-        btnDownload.addEventListener('click', () => {
-            const content = memoInput.value;
-            const blob = new Blob([content], { type: 'text/plain;charset=utf-8' });
-            const url = URL.createObjectURL(blob);
-            const now = new Date();
-            const year = now.getFullYear();
-            const month = String(now.getMonth() + 1).padStart(2, '0');
-            const day = String(now.getDate()).padStart(2, '0');
-            const hours = String(now.getHours()).padStart(2, '0');
-            const minutes = String(now.getMinutes()).padStart(2, '0');
-            const seconds = String(now.getSeconds()).padStart(2, '0');
-            const filename = `${year}.${month}.${day}_${hours}.${minutes}.${seconds}.txt`;
-            const link = document.createElement('a');
-            link.href = url;
-            link.download = filename;
-            document.body.appendChild(link);
-            link.click();
-            document.body.removeChild(link);
-            URL.revokeObjectURL(url);
-            showToast(`${filename} を保存しました`);
-        });
+        btnDownload.addEventListener('click', downloadTxt);
 
         function showToast(message) {
             toast.innerText = message;
