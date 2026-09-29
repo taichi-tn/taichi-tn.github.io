@@ -1,0 +1,185 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>メモ帳</title>
+</head>
+<body>
+    <header>
+        <h1>メモ帳</h1>
+    </header>
+
+    <main>
+        <!-- メモ入力エリア -->
+        <textarea id="memo-input" rows="15" cols="60" autofocus></textarea>
+    </main>
+
+    <footer>
+        <form id="memo-form" onsubmit="return false;">
+            <!-- フォントサイズ調整 -->
+            <fieldset>
+                <legend>フォントサイズ</legend>
+                <input type="button" id="btn-font-decrease" value="-">
+                <span id="font-size-display">18px</span>
+                <input type="button" id="btn-font-increase" value="+">
+            </fieldset>
+
+            <!-- 操作ボタン（input type="button" や type="submit" を使用） -->
+            <input type="button" id="btn-download" value=".txt 保存">
+            <input type="submit" id="btn-clear" value="全消去">
+        </form>
+
+        <!-- ステータス・文字数表示 -->
+        <div>
+            <span>ステータス: <strong id="status-text">保存完了</strong></span> | 
+            <span>文字数: <strong id="char-count">0</strong></span>
+        </div>
+    </footer>
+
+    <!-- 通知・モーダル（純粋なHTML要素としてシンプル化） -->
+    <dialog id="confirm-modal">
+        <form method="dialog">
+            <p>メモを全消去しますか？</p>
+            <p><small>この操作は取り消せません。</small></p>
+            <menu>
+                <button value="cancel" id="modal-cancel">キャンセル</button>
+                <button value="confirm" id="modal-confirm">消去する</button>
+            </menu>
+        </form>
+    </dialog>
+
+    <script type="module">
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js";
+        import { getDatabase, ref, set, get } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-database.js";
+
+        const firebaseConfig = {
+            apiKey: "AIzaSyBuU0l8CzxvUJshPljuAq5LLI8mCGG0f2g",
+            authDomain: "warehs.firebaseapp.com",
+            databaseURL: "https://warehs-default-rtdb.firebaseio.com",
+            projectId: "warehs",
+            storageBucket: "warehs.firebasestorage.app",
+            messagingSenderId: "351013737525",
+            appId: "1:351013737525:web:7d70dc58ab45e6a7b18d7c",
+        };
+
+        let db = null;
+        try {
+            if (firebaseConfig.apiKey !== "YOUR_API_KEY") {
+                const app = initializeApp(firebaseConfig);
+                db = getDatabase(app);
+            }
+        } catch (error) {
+            console.error("Firebase Error:", error);
+        }
+
+        const memoInput = document.getElementById('memo-input');
+        const charCount = document.getElementById('char-count');
+        const statusText = document.getElementById('status-text');
+        const fontSizeDisplay = document.getElementById('font-size-display');
+        const confirmModal = document.getElementById('confirm-modal');
+        let debounceTimer = null;
+        let currentFontSize = 18;
+
+        function updateStatus(text) {
+            statusText.innerText = text;
+        }
+
+        function updateCounters() {
+            charCount.innerText = memoInput.value.length.toLocaleString();
+        }
+
+        async function loadMemoFromDatabase() {
+            updateStatus('読み込み中...');
+            if (!db) {
+                memoInput.value = localStorage.getItem('apple_memo_demo') || '';
+                updateCounters();
+                updateStatus('ローカル保存(デモ)');
+                return;
+            }
+            try {
+                const snapshot = await get(ref(db, '/'));
+                if (snapshot.exists()) {
+                    const data = snapshot.val();
+                    memoInput.value = (data && data.text !== undefined) ? data.text : '';
+                }
+                updateCounters();
+                updateStatus('保存完了');
+            } catch (error) {
+                updateStatus('エラー');
+            }
+        }
+
+        async function saveMemoToDatabase(content) {
+            updateStatus('保存中...');
+            if (!db) {
+                localStorage.setItem('apple_memo_demo', content);
+                updateStatus('ローカル保存(デモ)');
+                return;
+            }
+            try {
+                await set(ref(db, 'text'), content);
+                updateStatus('保存完了');
+            } catch (error) {
+                updateStatus('保存失敗');
+            }
+        }
+
+        memoInput.addEventListener('input', () => {
+            updateCounters();
+            updateStatus('未保存の変更');
+            clearTimeout(debounceTimer);
+            debounceTimer = setTimeout(() => {
+                saveMemoToDatabase(memoInput.value);
+            }, 1000);
+        });
+
+        document.getElementById('btn-font-increase').addEventListener('click', () => {
+            if (currentFontSize < 48) {
+                currentFontSize += 2;
+                memoInput.style.fontSize = `${currentFontSize}px`;
+                fontSizeDisplay.innerText = `${currentFontSize}px`;
+            }
+        });
+
+        document.getElementById('btn-font-decrease').addEventListener('click', () => {
+            if (currentFontSize > 12) {
+                currentFontSize -= 2;
+                memoInput.style.fontSize = `${currentFontSize}px`;
+                fontSizeDisplay.innerText = `${currentFontSize}px`;
+            }
+        });
+
+        document.getElementById('btn-download').addEventListener('click', () => {
+            const blob = new Blob([memoInput.value], { type: 'text/plain;charset=utf-8' });
+            const url = URL.createObjectURL(blob);
+            const now = new Date();
+            const filename = `${now.getFullYear()}.${String(now.getMonth()+1).padStart(2,'0')}.${String(now.getDate()).padStart(2,'0')}.txt`;
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = filename;
+            a.click();
+            URL.revokeObjectURL(url);
+        });
+
+        // 全消去（input type="submit" またはボタンでダイアログ呼び出し）
+        document.getElementById('btn-clear').addEventListener('click', (e) => {
+            e.preventDefault();
+            if (!memoInput.value) return;
+            confirmModal.showModal(); // 標準のdialogタグ表示機能
+        });
+
+        document.getElementById('modal-confirm').addEventListener('click', () => {
+            memoInput.value = '';
+            updateCounters();
+            saveMemoToDatabase('');
+            confirmModal.close();
+        });
+
+        window.addEventListener('DOMContentLoaded', () => {
+            loadMemoFromDatabase();
+            memoInput.style.fontSize = `${currentFontSize}px`;
+        });
+    </script>
+</body>
+</html>
