@@ -1,0 +1,536 @@
+<!DOCTYPE html>
+<html lang="ja" class="h-full">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <link rel="icon" href="icon.png" type="image/png">
+    <title>メモ帳</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    colors: {
+                        appleBar: '#f5f5f7',
+                        appleBorder: '#e5e5ea',
+                        appleHover: '#e8e8ed'
+                    }
+                }
+            }
+        }
+    </script>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+JP:wght@400;500&display=swap" rel="stylesheet">
+    <style>
+        * {
+            font-family: -apple-system, BlinkMacSystemFont, "SF Pro Text", "SF Pro Display", "Hiragino Sans", "Hiragino Kaku Gothic ProN", "Noto Sans JP", sans-serif !important;
+            -webkit-font-smoothing: antialiased;
+            -moz-osx-font-smoothing: grayscale;
+            box-sizing: border-box !important;
+        }
+        html, body {
+            height: 100%;
+            margin: 0;
+            padding: 0;
+            overflow: hidden;
+            background-color: #ffffff;
+            color: #1d1d1f;
+        }
+        .editor-container {
+            width: 100%;
+            height: calc(100vh - 42px);
+            padding: 12px 20px !important;
+            box-sizing: border-box !important;
+            background-color: #ffffff;
+        }
+        @media (max-width: 640px) {
+            .editor-container {
+                padding: 20px 20px !important;
+            }
+        }
+        textarea {
+            width: 100% !important;
+            height: 100% !important;
+            margin: 0 !important;
+            padding: 0 !important;
+            border: none !important;
+            outline: none !important;
+            resize: none !important;
+            background-color: transparent !important;
+            color: #1d1d1f !important;
+            line-height: 1.7 !important;
+            letter-spacing: -0.01em !important;
+            display: block !important;
+        }
+        textarea::-webkit-scrollbar {
+            width: 8px;
+        }
+        textarea::-webkit-scrollbar-track {
+            background: transparent;
+        }
+        textarea::-webkit-scrollbar-thumb {
+            background: #d1d1d6;
+            border-radius: 4px;
+        }
+        textarea::-webkit-scrollbar-thumb:hover {
+            background: #aeaeb2;
+        }
+        .status-dot-pulse {
+            animation: pulse 1.5s cubic-bezier(0.4, 0, 0.6, 1) infinite;
+        }
+        @keyframes pulse {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.3; }
+        }
+    </style>
+</head>
+<body class="flex flex-col h-full w-full">
+    <main class="flex-1 w-full overflow-hidden bg-white">
+        <div class="editor-container">
+            <textarea 
+                id="memo-input" 
+                class="text-base font-normal transition-all"
+                spellcheck="false"
+                autofocus
+            ></textarea>
+        </div>
+    </main>
+    <footer class="h-[42px] w-full bg-[#f5f5f7] border-t border-[#e5e5ea] flex items-center justify-between px-3 z-40 select-none text-[#1d1d1f] text-xs">
+        <div class="flex items-center space-x-2.5">
+            <!-- フォントサイズ調節 -->
+            <div class="flex items-center bg-white border border-[#d1d1d6] rounded-md px-1 py-0.5 shadow-sm">
+                <button id="btn-font-decrease" class="w-5 h-5 flex items-center justify-center text-[#515154] hover:text-[#1d1d1f] rounded hover:bg-[#f2f2f7] transition-colors" title="文字を小さく">
+                    <svg class="w-3 h-3" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+                        <line x1="5" y1="12" x2="19" y2="12"></line>
+                    </svg>
+                </button>
+                <span id="font-size-display" class="font-mono font-normal text-[#1d1d1f] w-9 text-center text-[11px]">18px</span>
+                <button id="btn-font-increase" class="w-5 h-5 flex items-center justify-center text-[#515154] hover:text-[#1d1d1f] rounded hover:bg-[#f2f2f7] transition-colors" title="文字を大きく">
+                    <svg class="w-3 h-3" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+                        <line x1="12" y1="5" x2="12" y2="19"></line>
+                        <line x1="5" y1="12" x2="19" y2="12"></line>
+                    </svg>
+                </button>
+            </div>
+            <div class="h-3.5 w-[1px] bg-[#d1d1d6]"></div>
+            
+            <!-- 日付プルダウン選択 -->
+            <div class="flex items-center space-x-1">
+                <span class="text-[#8e8e93]">日時</span>
+                <select id="date-select" class="bg-white border border-[#d1d1d6] rounded-md px-2 py-1 text-xs text-[#1d1d1f] focus:outline-none focus:border-[#007aff]">
+                    <!-- 動的生成 -->
+                </select>
+            </div>
+            <div class="h-3.5 w-[1px] bg-[#d1d1d6]"></div>
+
+            <!-- Android通知用 (textキー反映) ボタン -->
+            <button id="btn-send-text" class="flex items-center space-x-1.5 px-2.5 py-1 bg-white hover:bg-[#e8f2ff] border border-[#007aff]/40 text-[#007aff] rounded-md shadow-sm transition-colors font-normal" title="現在の内容をルートのtextキーに反映してAndroidに通知します (Ctrl+Shift+X)">
+                <svg class="w-3.5 h-3.5 text-[#007aff]" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+                    <path d="M22 2L11 13"></path>
+                    <path d="M22 2l-7 20-4-9-9-4 20-7z"></path>
+                </svg>
+                <span>textへ送信 <span class="text-[10px] opacity-70"></span></span>
+            </button>
+            <div class="h-3.5 w-[1px] bg-[#d1d1d6]"></div>
+
+            <!-- txtファイルダウンロード -->
+            <button id="btn-download" class="flex items-center space-x-1.5 px-2.5 py-1 bg-white hover:bg-[#f2f2f7] border border-[#d1d1d6] text-[#1d1d1f] rounded-md shadow-sm transition-colors font-normal" title="txtファイルとしてダウンロード">
+                <svg class="w-3.5 h-3.5 text-[#007aff]" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+                    <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
+                    <polyline points="7 10 12 15 17 10"></polyline>
+                    <line x1="12" y1="15" x2="12" y2="3"></line>
+                </svg>
+                <span>txt保存</span>
+            </button>
+            <div class="h-3.5 w-[1px] bg-[#d1d1d6]"></div>
+            
+            <!-- 保存ステータス表示 -->
+            <div id="status-badge" class="flex items-center space-x-1.5 px-1.5 py-0.5 font-normal text-[#8e8e93]">
+                <span id="status-icon" class="inline-block w-2 h-2 rounded-full bg-[#34c759]"></span>
+                <span id="status-text">保存完了</span>
+            </div>
+        </div>
+
+        <!-- 右側グループ -->
+        <div class="flex items-center space-x-2.5">
+            <div class="flex items-center space-x-1.5 px-1 py-0.5 text-[#8e8e93] font-normal">
+                <span class="text-[#8e8e93] text-[11px]">文字数</span>
+                <span id="char-count" class="font-normal text-[#1d1d1f]">0</span>
+            </div>
+            <div class="h-3.5 w-[1px] bg-[#d1d1d6]"></div>
+            <!-- 日付キー削除ボタン -->
+            <button id="btn-delete-key" class="flex items-center space-x-1.5 px-2.5 py-1 bg-white hover:bg-[#ff3b30]/10 border border-[#ff3b30]/30 text-[#ff3b30] rounded-md shadow-sm font-normal transition-colors" title="選択中の日時キーをDBから削除">
+                <svg class="w-3.5 h-3.5 text-[#ff3b30]" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+                    <polyline points="3 6 5 6 21 6"></polyline>
+                    <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path>
+                </svg>
+                <span>削除</span>
+            </button>
+        </div>
+    </footer>
+
+    <div id="toast" class="fixed top-4 left-1/2 -translate-x-1/2 bg-[#1d1d1f]/90 text-white backdrop-blur-md px-4 py-2 rounded-full shadow-lg text-xs font-normal opacity-0 pointer-events-none transition-all duration-200 transform -translate-y-2 z-50">
+        通知メッセージ
+    </div>
+
+    <script type="module">
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js";
+        import { getDatabase, ref, set, get, remove } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-database.js";
+
+        const firebaseConfig = {
+            apiKey: "AIzaSyBuU0l8CzxvUJshPljuAq5LLI8mCGG0f2g",
+            authDomain: "warehs.firebaseapp.com",
+            databaseURL: "https://warehs-default-rtdb.firebaseio.com",
+            projectId: "warehs",
+            storageBucket: "warehs.firebasestorage.app",
+            messagingSenderId: "351013737525",
+            appId: "1:351013737525:web:7d70dc58ab45e6a7b18d7c",
+        };
+
+        let db = null;
+        try {
+            if (firebaseConfig.apiKey !== "YOUR_API_KEY") {
+                const app = initializeApp(firebaseConfig);
+                db = getDatabase(app);
+            } else {
+                console.warn("[NotePad] Firebase設定が未入力です。");
+            }
+        } catch (error) {
+            console.error("Firebase Initialization Error:", error);
+        }
+
+        const memoInput = document.getElementById('memo-input');
+        const charCount = document.getElementById('char-count');
+        const statusIcon = document.getElementById('status-icon');
+        const statusText = document.getElementById('status-text');
+        const fontSizeDisplay = document.getElementById('font-size-display');
+        const dateSelect = document.getElementById('date-select');
+        const btnSendText = document.getElementById('btn-send-text');
+        const btnDeleteKey = document.getElementById('btn-delete-key');
+
+        let debounceTimer = null;
+        const DEBOUNCE_DELAY = 1000;
+        let currentDateKey = '';
+        let isInitializing = true;
+
+        const STATUS = {
+            IDLE: { text: '保存完了', color: 'bg-[#34c759]', pulse: false },
+            TYPING: { text: '未保存の変更', color: 'bg-[#ff9500]', pulse: false },
+            SAVING: { text: '保存中...', color: 'bg-[#007aff]', pulse: true },
+            ERROR: { text: '保存エラー', color: 'bg-[#ff3b30]', pulse: false },
+            OFFLINE: { text: 'ローカル保存(デモ)', color: 'bg-[#8e8e93]', pulse: false }
+        };
+
+        function updateStatus(state) {
+            statusText.innerText = state.text;
+            statusIcon.className = `inline-block w-2 h-2 rounded-full ${state.color}`;
+            if (state.pulse) {
+                statusIcon.classList.add('status-dot-pulse');
+            } else {
+                statusIcon.classList.remove('status-dot-pulse');
+            }
+        }
+
+        function updateCounters() {
+            charCount.innerText = memoInput.value.length.toLocaleString();
+        }
+
+        function generateCurrentDateKey() {
+            const now = new Date();
+            const y = now.getFullYear();
+            const m = String(now.getMonth() + 1).padStart(2, '0');
+            const d = String(now.getDate()).padStart(2, '0');
+            const h = String(now.getHours()).padStart(2, '0');
+            const min = String(now.getMinutes()).padStart(2, '0');
+            const s = String(now.getSeconds()).padStart(2, '0');
+            return `${y}-${m}-${d}-${h}-${min}-${s}`;
+        }
+
+        function formatDisplayDate(key) {
+            const parts = key.split('-');
+            if (parts.length >= 6) {
+                return `${parts[0]}/${parts[1]}/${parts[2]} ${parts[3]}:${parts[4]}:${parts[5]}`;
+            }
+            return key;
+        }
+
+        function parseKeyToDate(key) {
+            const parts = key.split('-').map(Number);
+            if (parts.length >= 6) {
+                return new Date(parts[0], parts[1] - 1, parts[2], parts[3], parts[4], parts[5]);
+            }
+            return null;
+        }
+
+        // 初期化処理: isInitialLoad=true の時だけ「新規アクセスの自動作成」を行う
+        async function initDatabaseSession(targetKey = null, isInitialLoad = false) {
+            isInitializing = true;
+            updateStatus(STATUS.SAVING);
+
+            if (!db) {
+                currentDateKey = targetKey || generateCurrentDateKey();
+                dateSelect.innerHTML = `<option value="${currentDateKey}">${formatDisplayDate(currentDateKey)}</option>`;
+                memoInput.value = localStorage.getItem('apple_memo_' + currentDateKey) || '';
+                updateCounters();
+                updateStatus(STATUS.OFFLINE);
+                isInitializing = false;
+                return;
+            }
+
+            try {
+                const memoRef = ref(db, 'memo');
+                const snapshot = await get(memoRef);
+                let memoData = {};
+                if (snapshot.exists()) {
+                    memoData = snapshot.val();
+                }
+
+                // 1. ページ読み込み時のみ：古い空白メモの自動クリーンアップ
+                if (isInitialLoad) {
+                    const now = new Date();
+                    const oneDayMs = 24 * 60 * 60 * 1000;
+                    for (const [key, val] of Object.entries(memoData)) {
+                        const textVal = (typeof val === 'object' && val !== null && val.text !== undefined) ? val.text : String(val);
+                        const memoDate = parseKeyToDate(key);
+                        if (memoDate && (now - memoDate >= oneDayMs) && (!textVal || textVal.trim() === '')) {
+                            await remove(ref(db, `memo/${key}`));
+                            delete memoData[key];
+                        }
+                    }
+                }
+
+                let keys = Object.keys(memoData);
+                
+                // 2. ページ初回アクセス時 かつ データベースにデータが一切ない場合のみ、新しい日時キーを自動作成する
+                if (isInitialLoad && keys.length === 0) {
+                    const newKey = generateCurrentDateKey();
+                    await set(ref(db, `memo/${newKey}`), '');
+                    memoData[newKey] = '';
+                    keys = [newKey];
+                }
+
+                keys.sort().reverse();
+
+                // 3. 表示するキーの決定
+                if (targetKey && keys.includes(targetKey)) {
+                    currentDateKey = targetKey;
+                } else if (keys.length > 0) {
+                    currentDateKey = keys[0]; // 残りの中での最新（一番上）
+                } else {
+                    currentDateKey = generateCurrentDateKey();
+                    keys = [currentDateKey];
+                }
+
+                dateSelect.innerHTML = '';
+                keys.forEach(k => {
+                    const opt = document.createElement('option');
+                    opt.value = k;
+                    opt.innerText = formatDisplayDate(k);
+                    dateSelect.appendChild(opt);
+                });
+
+                dateSelect.value = currentDateKey;
+                
+                const val = memoData[currentDateKey];
+                if (val !== undefined && val !== null) {
+                    memoInput.value = (typeof val === 'object' && val.text !== undefined) ? val.text : String(val);
+                } else {
+                    memoInput.value = '';
+                }
+
+                updateCounters();
+                updateStatus(STATUS.IDLE);
+            } catch (error) {
+                console.error("Initialization & Cleanup Error:", error);
+                updateStatus(STATUS.ERROR);
+            } finally {
+                isInitializing = false;
+            }
+        }
+
+        async function loadDataForKey(key) {
+            isInitializing = true;
+            currentDateKey = key;
+            updateStatus(STATUS.SAVING);
+
+            if (!db) {
+                memoInput.value = localStorage.getItem('apple_memo_' + key) || '';
+                updateCounters();
+                updateStatus(STATUS.OFFLINE);
+                isInitializing = false;
+                return;
+            }
+
+            try {
+                const snapshot = await get(ref(db, `memo/${key}`));
+                if (snapshot.exists()) {
+                    const val = snapshot.val();
+                    memoInput.value = (typeof val === 'object' && val.text !== undefined) ? val.text : String(val);
+                } else {
+                    memoInput.value = '';
+                }
+                updateCounters();
+                updateStatus(STATUS.IDLE);
+            } catch (error) {
+                console.error("Load Error:", error);
+                updateStatus(STATUS.ERROR);
+            } finally {
+                isInitializing = false;
+            }
+        }
+
+        async function saveMemoToDatabase(content) {
+            if (isInitializing) return;
+
+            updateStatus(STATUS.SAVING);
+            if (!db) {
+                localStorage.setItem('apple_memo_' + currentDateKey, content);
+                setTimeout(() => updateStatus(STATUS.OFFLINE), 200);
+                return;
+            }
+
+            try {
+                await set(ref(db, `memo/${currentDateKey}`), content);
+                updateStatus(STATUS.IDLE);
+            } catch (error) {
+                console.error('Firebase Save Error:', error);
+                updateStatus(STATUS.ERROR);
+            }
+        }
+
+        async function sendTextToRoot() {
+            if (!db) {
+                showToast("デモモードのためtext送信はスキップされました");
+                return;
+            }
+            try {
+                updateStatus(STATUS.SAVING);
+                await set(ref(db, 'text'), memoInput.value);
+                updateStatus(STATUS.IDLE);
+                showToast("Androidへ転送しました");
+            } catch (error) {
+                console.error("Text Sync Error:", error);
+                updateStatus(STATUS.ERROR);
+                showToast("textへの送信に失敗しました");
+            }
+        }
+
+        btnSendText.addEventListener('click', sendTextToRoot);
+
+        window.addEventListener('keydown', (e) => {
+            if ((e.ctrlKey || e.metaKey) && e.shiftKey && (e.key === 'x' || e.key === 'X')) {
+                e.preventDefault();
+                sendTextToRoot();
+            }
+        });
+
+        function handleInput() {
+            if (isInitializing) return;
+            updateCounters();
+            updateStatus(STATUS.TYPING);
+            clearTimeout(debounceTimer);
+            debounceTimer = setTimeout(() => {
+                saveMemoToDatabase(memoInput.value);
+            }, DEBOUNCE_DELAY);
+        }
+
+        dateSelect.addEventListener('change', (e) => {
+            const selectedKey = e.target.value;
+            loadDataForKey(selectedKey);
+            showToast(`${formatDisplayDate(selectedKey)} へ切り替え`);
+        });
+
+        const btnFontIncrease = document.getElementById('btn-font-increase');
+        const btnFontDecrease = document.getElementById('btn-font-decrease');
+        const btnDownload = document.getElementById('btn-download');
+        const toast = document.getElementById('toast');
+
+        let currentFontSize = 18;
+        function updateFontSizeUI() {
+            memoInput.style.fontSize = `${currentFontSize}px`;
+            fontSizeDisplay.innerText = `${currentFontSize}px`;
+        }
+
+        btnFontIncrease.addEventListener('click', () => {
+            if (currentFontSize < 48) { currentFontSize += 2; updateFontSizeUI(); }
+        });
+        btnFontDecrease.addEventListener('click', () => {
+            if (currentFontSize > 12) { currentFontSize -= 2; updateFontSizeUI(); }
+        });
+
+        btnDownload.addEventListener('click', () => {
+            const content = memoInput.value;
+            const blob = new Blob([content], { type: 'text/plain;charset=utf-8' });
+            const url = URL.createObjectURL(blob);
+            const filename = `${currentDateKey}.txt`;
+            const link = document.createElement('a');
+            link.href = url;
+            link.download = filename;
+            document.body.appendChild(link);
+            link.click();
+            document.body.removeChild(link);
+            URL.revokeObjectURL(url);
+            showToast(`${filename} を保存しました`);
+        });
+
+        function showToast(message) {
+            toast.innerText = message;
+            toast.classList.remove('opacity-0', '-translate-y-2', 'pointer-events-none');
+            toast.classList.add('opacity-100', 'translate-y-0');
+            setTimeout(() => {
+                toast.classList.remove('opacity-100', 'translate-y-0');
+                toast.classList.add('opacity-0', '-translate-y-2', 'pointer-events-none');
+            }, 2200);
+        }
+
+        // 削除ボタン：削除後に残りの中で最新のものを選択して遷移（新規作成はしない）
+        btnDeleteKey.addEventListener('click', async () => {
+            const displayTime = formatDisplayDate(currentDateKey);
+            const ok = confirm(`「${displayTime}」のデータをDBから削除しますか？`);
+            if (!ok) return;
+
+            if (!db) {
+                localStorage.removeItem('apple_memo_' + currentDateKey);
+                showToast("ローカルデータを削除しました");
+                initDatabaseSession(null, false);
+                return;
+            }
+
+            try {
+                updateStatus(STATUS.SAVING);
+                // 1. 選択中のキーを削除
+                await remove(ref(db, `memo/${currentDateKey}`));
+                showToast(`「${displayTime}」を削除しました`);
+
+                // 2. 残っているキーを取得し、一番新しいものを次のターゲットにする
+                const memoRef = ref(db, 'memo');
+                const snapshot = await get(memoRef);
+                let nextKey = null;
+                if (snapshot.exists()) {
+                    const memoData = snapshot.val();
+                    const remainingKeys = Object.keys(memoData).sort().reverse();
+                    if (remainingKeys.length > 0) {
+                        nextKey = remainingKeys[0];
+                    }
+                }
+
+                // 3. 削除後の再読み込み（isInitialLoad = false なので新しいキーは勝手に作られない）
+                initDatabaseSession(nextKey, false);
+            } catch (error) {
+                console.error("Delete Error:", error);
+                updateStatus(STATUS.ERROR);
+                showToast("削除に失敗しました");
+            }
+        });
+
+        memoInput.addEventListener('input', handleInput);
+
+        window.addEventListener('DOMContentLoaded', () => {
+            // ページ初回アクセス時は isInitialLoad = true として、自動作成やクリーンアップを許可
+            initDatabaseSession(null, true);
+            updateFontSizeUI();
+        });
+    </script>
+</body>
+</html>
