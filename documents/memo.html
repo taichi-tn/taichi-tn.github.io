@@ -122,15 +122,25 @@
                     <!-- 動的生成 -->
                 </select>
             </div>
+
+            <!-- 新規作成ボタン -->
+            <button id="btn-new-memo" class="flex items-center space-x-1 px-2 py-1 bg-white hover:bg-[#f2f2f7] border border-[#d1d1d6] text-[#007aff] rounded-md shadow-sm transition-colors font-normal" title="現在の時間で新しいメモを作成">
+                <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+                    <line x1="12" y1="5" x2="12" y2="19"></line>
+                    <line x1="5" y1="12" x2="19" y2="12"></line>
+                </svg>
+                <span>新規作成</span>
+            </button>
+
             <div class="h-3.5 w-[1px] bg-[#d1d1d6]"></div>
 
             <!-- Android通知用 (textキー反映) ボタン -->
-            <button id="btn-send-text" class="flex items-center space-x-1.5 px-2.5 py-1 bg-white hover:bg-[#e8f2ff] border border-[#007aff]/40 text-[#007aff] rounded-md shadow-sm transition-colors font-normal" title="現在の内容をルートのtextキーに反映してAndroidに通知します (Ctrl+Shift+X)">
+            <button id="btn-send-text" class="flex items-center space-x-1.5 px-2.5 py-1 bg-white hover:bg-[#e8f2ff] border border-[#007aff]/40 text-[#007aff] rounded-md shadow-sm transition-colors font-normal" title="現在の内容をルートのtextキーに反映してAndroidに通知します">
                 <svg class="w-3.5 h-3.5 text-[#007aff]" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
                     <path d="M22 2L11 13"></path>
                     <path d="M22 2l-7 20-4-9-9-4 20-7z"></path>
                 </svg>
-                <span>textへ送信 <span class="text-[10px] opacity-70"></span></span>
+                <span>Androidへ送信</span>
             </button>
             <div class="h-3.5 w-[1px] bg-[#d1d1d6]"></div>
 
@@ -193,8 +203,6 @@
             if (firebaseConfig.apiKey !== "YOUR_API_KEY") {
                 const app = initializeApp(firebaseConfig);
                 db = getDatabase(app);
-            } else {
-                console.warn("[NotePad] Firebase設定が未入力です。");
             }
         } catch (error) {
             console.error("Firebase Initialization Error:", error);
@@ -206,6 +214,7 @@
         const statusText = document.getElementById('status-text');
         const fontSizeDisplay = document.getElementById('font-size-display');
         const dateSelect = document.getElementById('date-select');
+        const btnNewMemo = document.getElementById('btn-new-memo');
         const btnSendText = document.getElementById('btn-send-text');
         const btnDeleteKey = document.getElementById('btn-delete-key');
 
@@ -263,8 +272,7 @@
             return null;
         }
 
-        // 初期化処理: isInitialLoad=true の時だけ「新規アクセスの自動作成」を行う
-        async function initDatabaseSession(targetKey = null, isInitialLoad = false) {
+        async function initDatabaseSession(targetKey = null) {
             isInitializing = true;
             updateStatus(STATUS.SAVING);
 
@@ -286,63 +294,54 @@
                     memoData = snapshot.val();
                 }
 
-                // 1. ページ読み込み時のみ：古い空白メモの自動クリーンアップ
-                if (isInitialLoad) {
-                    const now = new Date();
-                    const oneDayMs = 24 * 60 * 60 * 1000;
-                    for (const [key, val] of Object.entries(memoData)) {
-                        const textVal = (typeof val === 'object' && val !== null && val.text !== undefined) ? val.text : String(val);
-                        const memoDate = parseKeyToDate(key);
-                        if (memoDate && (now - memoDate >= oneDayMs) && (!textVal || textVal.trim() === '')) {
-                            await remove(ref(db, `memo/${key}`));
-                            delete memoData[key];
-                        }
+                // 古い空白メモの自動クリーンアップ
+                const now = new Date();
+                const oneDayMs = 24 * 60 * 60 * 1000;
+                for (const [key, val] of Object.entries(memoData)) {
+                    const textVal = (typeof val === 'object' && val !== null && val.text !== undefined) ? val.text : String(val);
+                    const memoDate = parseKeyToDate(key);
+                    if (memoDate && (now - memoDate >= oneDayMs) && (!textVal || textVal.trim() === '')) {
+                        await remove(ref(db, `memo/${key}`));
+                        delete memoData[key];
                     }
                 }
 
                 let keys = Object.keys(memoData);
-                
-                // 2. ページ初回アクセス時 かつ データベースにデータが一切ない場合のみ、新しい日時キーを自動作成する
-                if (isInitialLoad && keys.length === 0) {
-                    const newKey = generateCurrentDateKey();
-                    await set(ref(db, `memo/${newKey}`), '');
-                    memoData[newKey] = '';
-                    keys = [newKey];
-                }
-
                 keys.sort().reverse();
 
-                // 3. 表示するキーの決定
                 if (targetKey && keys.includes(targetKey)) {
                     currentDateKey = targetKey;
                 } else if (keys.length > 0) {
-                    currentDateKey = keys[0]; // 残りの中での最新（一番上）
+                    currentDateKey = keys[0];
                 } else {
-                    currentDateKey = generateCurrentDateKey();
-                    keys = [currentDateKey];
+                    currentDateKey = '';
                 }
 
                 dateSelect.innerHTML = '';
-                keys.forEach(k => {
-                    const opt = document.createElement('option');
-                    opt.value = k;
-                    opt.innerText = formatDisplayDate(k);
-                    dateSelect.appendChild(opt);
-                });
-
-                dateSelect.value = currentDateKey;
-                
-                const val = memoData[currentDateKey];
-                if (val !== undefined && val !== null) {
-                    memoInput.value = (typeof val === 'object' && val.text !== undefined) ? val.text : String(val);
-                } else {
+                if (keys.length === 0) {
+                    dateSelect.innerHTML = `<option value="">メモがありません</option>`;
                     memoInput.value = '';
+                } else {
+                    keys.forEach(k => {
+                        const opt = document.createElement('option');
+                        opt.value = k;
+                        opt.innerText = formatDisplayDate(k);
+                        dateSelect.appendChild(opt);
+                    });
+                    dateSelect.value = currentDateKey;
+
+                    const val = memoData[currentDateKey];
+                    if (val !== undefined && val !== null) {
+                        memoInput.value = (typeof val === 'object' && val.text !== undefined) ? val.text : String(val);
+                    } else {
+                        memoInput.value = '';
+                    }
                 }
 
                 updateCounters();
                 updateStatus(STATUS.IDLE);
             } catch (error) {
-                console.error("Initialization & Cleanup Error:", error);
+                console.error("Initialization Error:", error);
                 updateStatus(STATUS.ERROR);
             } finally {
                 isInitializing = false;
@@ -350,6 +349,7 @@
         }
 
         async function loadDataForKey(key) {
+            if (!key) return;
             isInitializing = true;
             currentDateKey = key;
             updateStatus(STATUS.SAVING);
@@ -381,7 +381,7 @@
         }
 
         async function saveMemoToDatabase(content) {
-            if (isInitializing) return;
+            if (isInitializing || !currentDateKey) return;
 
             updateStatus(STATUS.SAVING);
             if (!db) {
@@ -399,6 +399,31 @@
             }
         }
 
+        // 新規作成の共通処理
+        async function createNewMemo() {
+            const newKey = generateCurrentDateKey();
+            if (!db) {
+                currentDateKey = newKey;
+                memoInput.value = '';
+                initDatabaseSession(newKey);
+                showToast(` (${formatDisplayDate(newKey)}) を作成`);
+                return;
+            }
+
+            try {
+                updateStatus(STATUS.SAVING);
+                await set(ref(db, `memo/${newKey}`), '');
+                showToast(` (${formatDisplayDate(newKey)}) を作成`);
+                initDatabaseSession(newKey);
+            } catch (error) {
+                console.error("New Memo Error:", error);
+                updateStatus(STATUS.ERROR);
+                showToast("新規作成に失敗しました");
+            }
+        }
+
+        btnNewMemo.addEventListener('click', createNewMemo);
+
         async function sendTextToRoot() {
             if (!db) {
                 showToast("デモモードのためtext送信はスキップされました");
@@ -408,7 +433,7 @@
                 updateStatus(STATUS.SAVING);
                 await set(ref(db, 'text'), memoInput.value);
                 updateStatus(STATUS.IDLE);
-                showToast("Androidへ転送しました");
+                showToast("Androidへ通知しました");
             } catch (error) {
                 console.error("Text Sync Error:", error);
                 updateStatus(STATUS.ERROR);
@@ -418,15 +443,21 @@
 
         btnSendText.addEventListener('click', sendTextToRoot);
 
+        // キーボードショートカット (Ctrl+Shift+Z または Ctrl+Shift+X)
         window.addEventListener('keydown', (e) => {
-            if ((e.ctrlKey || e.metaKey) && e.shiftKey && (e.key === 'x' || e.key === 'X')) {
-                e.preventDefault();
-                sendTextToRoot();
+            if ((e.ctrlKey || e.metaKey) && e.shiftKey) {
+                if (e.key === 'z' || e.key === 'Z') {
+                    e.preventDefault();
+                    createNewMemo();
+                } else if (e.key === 'x' || e.key === 'X') {
+                    e.preventDefault();
+                    sendTextToRoot();
+                }
             }
         });
 
         function handleInput() {
-            if (isInitializing) return;
+            if (isInitializing || !currentDateKey) return;
             updateCounters();
             updateStatus(STATUS.TYPING);
             clearTimeout(debounceTimer);
@@ -437,8 +468,9 @@
 
         dateSelect.addEventListener('change', (e) => {
             const selectedKey = e.target.value;
+            if (!selectedKey) return;
             loadDataForKey(selectedKey);
-            showToast(`${formatDisplayDate(selectedKey)} へ切り替え`);
+            showToast(`${formatDisplayDate(selectedKey)} に切り替えました`);
         });
 
         const btnFontIncrease = document.getElementById('btn-font-increase');
@@ -460,6 +492,7 @@
         });
 
         btnDownload.addEventListener('click', () => {
+            if (!currentDateKey) return;
             const content = memoInput.value;
             const blob = new Blob([content], { type: 'text/plain;charset=utf-8' });
             const url = URL.createObjectURL(blob);
@@ -484,26 +517,24 @@
             }, 2200);
         }
 
-        // 削除ボタン：削除後に残りの中で最新のものを選択して遷移（新規作成はしない）
         btnDeleteKey.addEventListener('click', async () => {
+            if (!currentDateKey) return;
             const displayTime = formatDisplayDate(currentDateKey);
-            const ok = confirm(`「${displayTime}」のデータをDBから削除しますか？`);
+            const ok = confirm(`「${displayTime}」のデータを削除しますか？`);
             if (!ok) return;
 
             if (!db) {
                 localStorage.removeItem('apple_memo_' + currentDateKey);
                 showToast("ローカルデータを削除しました");
-                initDatabaseSession(null, false);
+                initDatabaseSession();
                 return;
             }
 
             try {
                 updateStatus(STATUS.SAVING);
-                // 1. 選択中のキーを削除
                 await remove(ref(db, `memo/${currentDateKey}`));
                 showToast(`「${displayTime}」を削除しました`);
 
-                // 2. 残っているキーを取得し、一番新しいものを次のターゲットにする
                 const memoRef = ref(db, 'memo');
                 const snapshot = await get(memoRef);
                 let nextKey = null;
@@ -515,8 +546,7 @@
                     }
                 }
 
-                // 3. 削除後の再読み込み（isInitialLoad = false なので新しいキーは勝手に作られない）
-                initDatabaseSession(nextKey, false);
+                initDatabaseSession(nextKey);
             } catch (error) {
                 console.error("Delete Error:", error);
                 updateStatus(STATUS.ERROR);
@@ -527,8 +557,7 @@
         memoInput.addEventListener('input', handleInput);
 
         window.addEventListener('DOMContentLoaded', () => {
-            // ページ初回アクセス時は isInitialLoad = true として、自動作成やクリーンアップを許可
-            initDatabaseSession(null, true);
+            initDatabaseSession();
             updateFontSizeUI();
         });
     </script>
