@@ -7,6 +7,9 @@
 0,index.csv,index.csv
 0,index.html,index.html
 0,launch.html,launch.html
+0,📁 memo,memo/
+1,icon.png,memo/icon.png
+1,index.html,memo/index.html
 0,📁 pitch,pitch/
 1,index.html,pitch/index.html
 0,📁 tax,tax/
@@ -32,9 +35,27 @@
 3,index.csv,tax/sozoku/text/index.csv
 3,index.html,tax/sozoku/text/index.html
 0,📁 try,try/
+1,📁 fukaonuma,try/fukaonuma/
+2,📁 2025,try/fukaonuma/2025/
+3,📁 03,try/fukaonuma/2025/03/
+4,05.html,try/fukaonuma/2025/03/05.html
+4,12.html,try/fukaonuma/2025/03/12.html
+3,📁 04,try/fukaonuma/2025/04/
+4,28.html,try/fukaonuma/2025/04/28.html
+3,📁 06,try/fukaonuma/2025/06/
+4,20.html,try/fukaonuma/2025/06/20.html
+4,26.html,try/fukaonuma/2025/06/26.html
+3,📁 07,try/fukaonuma/2025/07/
+4,03.html,try/fukaonuma/2025/07/03.html
+2,📁 2026,try/fukaonuma/2026/
+3,📁 09,try/fukaonuma/2026/09/
+4,16.html,try/fukaonuma/2026/09/16.html
+3,📁 10,try/fukaonuma/2026/10/
+4,26.html,try/fukaonuma/2026/10/26.html
 1,📁 gounamba,try/gounamba/
 2,IMG_0400.jpeg,try/gounamba/IMG_0400.jpeg
 2,IMG_0401.jpeg,try/gounamba/IMG_0401.jpeg
+1,index.html,try/index.html
 1,📁 kikootsuka,try/kikootsuka/
 2,📁 gemini,try/kikootsuka/gemini/
 3,2026.01.31.08.53.html,try/kikootsuka/gemini/2026.01.31.08.53.html
@@ -42,6 +63,60 @@
 3,2026.02.21.20.10.html,try/kikootsuka/gemini/2026.02.21.20.10.html
 3,2026.02.27.12.36.html,try/kikootsuka/gemini/2026.02.27.12.36.html
 1,📁 kinomazaki,try/kinomazaki/
+2,📁 2025,try/kinomazaki/2025/
+3,📁 02,try/kinomazaki/2025/02/
+4,14.html,try/kinomazaki/2025/02/14.html
+4,21.html,try/kinomazaki/2025/02/21.html
+3,📁 03,try/kinomazaki/2025/03/
+4,14.html,try/kinomazaki/2025/03/14.html
+4,31.html,try/kinomazaki/2025/03/31.html
+3,📁 06,try/kinomazaki/2025/06/
+4,13.html,try/kinomazaki/2025/06/13.html
+3,📁 07,try/kinomazaki/2025/07/
+4,04.html,try/kinomazaki/2025/07/04.html
+4,11.html,try/kinomazaki/2025/07/11.html
+4,25.html,try/kinomazaki/2025/07/25.html
+3,📁 08,try/kinomazaki/2025/08/
+4,27.html,try/kinomazaki/2025/08/27.html
+3,📁 09,try/kinomazaki/2025/09/
+4,10.html,try/kinomazaki/2025/09/10.html
+3,📁 10,try/kinomazaki/2025/10/
+4,20.html,try/kinomazaki/2025/10/20.html
+4,27.html,try/kinomazaki/2025/10/27.html
+3,📁 11,try/kinomazaki/2025/11/
+4,27.html,try/kinomazaki/2025/11/27.html
+3,📁 12,try/kinomazaki/2025/12/
+4,1.html,try/kinomazaki/2025/12/1.html
+2,📁 2026,try/kinomazaki/2026/
+3,📁 01,try/kinomazaki/2026/01/
+4,26.html,try/kinomazaki/2026/01/26.html
+3,📁 02,try/kinomazaki/2026/02/
+4,03.html,try/kinomazaki/2026/02/03.html
+4,24.html,try/kinomazaki/2026/02/24.html
+3,📁 03,try/kinomazaki/2026/03/
+4,12.html,try/kinomazaki/2026/03/12.html
+4,26.html,try/kinomazaki/2026/03/26.html
+3,📁 04,try/kinomazaki/2026/04/
+4,08.html,try/kinomazaki/2026/04/08.html
+4,30.html,try/kinomazaki/2026/04/30.html
+3,📁 05,try/kinomazaki/2026/05/
+4,13.html,try/kinomazaki/2026/05/13.html
+4,27.html,try/kinomazaki/2026/05/27.html
+3,📁 06,try/kinomazaki/2026/06/
+4,06.html,try/kinomazaki/2026/06/06.html
+4,27.html,try/kinomazaki/2026/06/27.html
+3,📁 07,try/kinomazaki/2026/07/
+4,25.html,try/kinomazaki/2026/07/25.html
+3,📁 08,try/kinomazaki/2026/08/
+4,29.html,try/kinomazaki/2026/08/29.html
+3,📁 09,try/kinomazaki/2026/09/
+4,09.html,try/kinomazaki/2026/09/09.html
+4,16.html,try/kinomazaki/2026/09/16.html
+4,24.html,try/kinomazaki/2026/09/24.html
+4,30.html,try/kinomazaki/2026/09/30.html
+3,📁 10,try/kinomazaki/2026/10/
+4,21.html,try/kinomazaki/2026/10/21.html
+4,28.html,try/kinomazaki/2026/10/28.html
 2,📁 dailytry,try/kinomazaki/dailytry/
 3,📁 2025,try/kinomazaki/dailytry/2025/
 4,📁 6,try/kinomazaki/dailytry/2025/6/
@@ -191,6 +266,16 @@
 3,2026.03.12.html,try/riotakeda/schit.net/2026.03.12.html
 3,2026.03.14.html,try/riotakeda/schit.net/2026.03.14.html
 2,県民だより令和8年7月号.pdf,try/riotakeda/県民だより令和8年7月号.pdf
+1,📁 runaakiyama,try/runaakiyama/
+2,📁 2026,try/runaakiyama/2026/
+3,📁 04,try/runaakiyama/2026/04/
+4,27.html,try/runaakiyama/2026/04/27.html
+3,📁 09,try/runaakiyama/2026/09/
+4,28.html,try/runaakiyama/2026/09/28.html
+3,📁 10,try/runaakiyama/2026/10/
+4,28.html,try/runaakiyama/2026/10/28.html
+3,📁 11,try/runaakiyama/2026/11/
+4,02.html,try/runaakiyama/2026/11/02.html
 1,📁 ryunosuketokita,try/ryunosuketokita/
 2,📁 dailytry,try/ryunosuketokita/dailytry/
 3,📁 2024,try/ryunosuketokita/dailytry/2024/
@@ -222,6 +307,21 @@
 1,📁 taigamatsui,try/taigamatsui/
 2,📁 gemini,try/taigamatsui/gemini/
 3,unknown.html,try/taigamatsui/gemini/unknown.html
+1,📁 yuitokitagawa,try/yuitokitagawa/
+2,📁 2026,try/yuitokitagawa/2026/
+3,📁 09,try/yuitokitagawa/2026/09/
+4,30.html,try/yuitokitagawa/2026/09/30.html
+1,📁 yumatatsu,try/yumatatsu/
+2,📁 2026,try/yumatatsu/2026/
+3,📁 05,try/yumatatsu/2026/05/
+4,09.html,try/yumatatsu/2026/05/09.html
+3,📁 09,try/yumatatsu/2026/09/
+4,02.html,try/yumatatsu/2026/09/02.html
+4,09.html,try/yumatatsu/2026/09/09.html
+4,16.html,try/yumatatsu/2026/09/16.html
+4,30.html,try/yumatatsu/2026/09/30.html
+3,📁 10,try/yumatatsu/2026/10/
+4,28.html,try/yumatatsu/2026/10/28.html
 1,📁 yutasakai,try/yutasakai/
 2,📁 dailytry,try/yutasakai/dailytry/
 3,📁 2024,try/yutasakai/dailytry/2024/
